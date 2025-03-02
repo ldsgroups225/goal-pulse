@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
-    "btts"
+    "btts",
+    "ongoal"
   ],
   // Disable the default formatter, use eslint instead
   "prettier.enable": false,
