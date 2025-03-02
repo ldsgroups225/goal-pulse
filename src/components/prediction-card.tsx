@@ -158,7 +158,7 @@ export function PredictionCard({
             </div>
 
             {/* Away Team */}
-            <div className="flex flex-row-reverse items-center justify-start gap-1">
+            <div className="flex flex-row items-center justify-start gap-1">
               <div className="w-8 h-8 relative">
                 <Image
                   src={data.teams.away.logoUrl}
