@@ -11,17 +11,6 @@
   scrollbar-width: none;  /* Firefox */
 }
 
-/* Smooth scrolling for the entire page */
-:global(html) {
-  scroll-behavior: smooth;
-  scroll-padding-top: 64px; /* Account for fixed header */
-}
-
-/* Add elastic overflow scrolling on iOS devices */
-:global(body) {
-  -webkit-overflow-scrolling: touch;
-}
-
 /* Animation for search transitions */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }

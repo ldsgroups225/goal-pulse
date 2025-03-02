@@ -6,6 +6,8 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     height: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 64px; /* Account for fixed header */
   }
   
   body {
@@ -13,6 +15,7 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-overflow-scrolling: touch; /* Add elastic overflow scrolling on iOS devices */
   }
   
   button, a {
