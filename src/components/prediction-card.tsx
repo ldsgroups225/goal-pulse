@@ -21,29 +21,6 @@ export function PredictionCard({
   const isCompact = variant === 'compact'
   const { homeColor, awayColor } = formatScore(data.teams.home.score, data.teams.away.score)
 
-  // Calculate suggested bet with color
-  const recommendedBet = data.prediction.recommendedBet
-  let betBoxColor = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-
-  if (recommendedBet.includes('Home Win')) {
-    betBoxColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-  }
-  else if (recommendedBet.includes('Away Win')) {
-    betBoxColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-  }
-  else if (recommendedBet.includes('Draw')) {
-    betBoxColor = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
-  }
-  else if (recommendedBet.includes('Over')) {
-    betBoxColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-  }
-  else if (recommendedBet.includes('Under')) {
-    betBoxColor = 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-  }
-  else if (recommendedBet.includes('BTTS')) {
-    betBoxColor = 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300'
-  }
-
   // Get temporal goal prediction if available
   const temporalPrediction = data.temporalGoalProbability?.windows
   const highestGoalWindow = temporalPrediction && temporalPrediction.length > 0
@@ -75,9 +52,14 @@ export function PredictionCard({
   const matchMinute = data.status.minute
   const isLive = data.status.isLive
 
-  // Placeholder for additional data elements not in type
-  const matchDate = 'Upcoming'
-  const isStopped = false
+  // Check for red cards
+  const hasRedCard = data.stats?.cards?.home?.red > 0 || data.stats?.cards?.away?.red > 0
+  
+  // Enhanced UI for cards with red cards
+  const redCardHighlight = hasRedCard && isLive ? 'border-red-500 dark:border-red-500' : ''
+
+  // Get match start time from data if available
+  const matchStartTime = data.lastUpdated // Using lastUpdated as a placeholder - replace with actual start time field
 
   return (
     <div
@@ -87,6 +69,7 @@ export function PredictionCard({
         'active:scale-[0.995] touch-action-manipulation',
         'dark:hover:bg-card/90 dark:shadow-lg dark:shadow-black/10',
         'flex flex-col',
+        redCardHighlight,
         className,
       )}
     >
@@ -104,22 +87,26 @@ export function PredictionCard({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            {isLive && <LiveBadge status={statusText} minute={matchMinute} />}
-            <span className="text-xs">
-              {isLive && matchMinute
-                ? (
-                    <>
-                      {matchMinute}
-                      '
-                      {isStopped && '+'}
-                    </>
-                  )
-                : statusText === 'HT'
-                  ? 'HT'
-                  : statusText === 'FT'
-                    ? 'FT'
-                    : matchDate}
-            </span>
+            {/* Live badge with enhanced functionality */}
+            <LiveBadge 
+              status={statusText} 
+              minute={matchMinute} 
+              startTime={statusText === 'NS' ? matchStartTime : undefined}
+            />
+            
+            {/* Red card indicator */}
+            {hasRedCard && (
+              <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 px-1.5 py-0.5 rounded font-medium">
+                RC
+              </span>
+            )}
+
+            {/* Display minute or status */}
+            {!isLive && statusText !== 'NS' && statusText !== 'HT' && statusText !== 'FT' && (
+              <span className="text-xs">
+                {statusText}
+              </span>
+            )}
           </div>
         </div>
 
@@ -147,7 +134,7 @@ export function PredictionCard({
               <div className="mb-0.5 text-sm opacity-70 font-medium">
                 {isLive || statusText === 'HT' || statusText === 'FT'
                   ? 'Score'
-                  : matchDate}
+                  : 'Match'}
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -227,19 +214,19 @@ export function PredictionCard({
                   : 'bg-primary/5 dark:bg-primary/10',
               )}
             >
-              <div className="text-xs opacity-80 mb-0.5">First 15'</div>
+              <div className="text-xs opacity-80 mb-0.5">Home Next</div>
               <div className={cn(
                 'text-xl font-bold',
                 first15Prob && first15Prob > 30 ? 'text-blue-600 dark:text-blue-400' : 'text-primary dark:text-primary-foreground',
               )}
               >
-                {first15Prob !== null ? `${first15Prob}%` : '-'}
+                {Math.round(data.prediction.winProbability.home * 100)}%
               </div>
             </div>
 
             {/* Overall goal probability */}
             <div className="flex flex-col items-center justify-center py-2 px-1 bg-secondary dark:bg-secondary/30">
-              <div className="text-xs opacity-80 mb-0.5">Goal Prob</div>
+              <div className="text-xs opacity-80 mb-0.5">Next Goal</div>
               <div className="text-xl font-bold text-secondary-foreground">
                 {data.prediction.goals && typeof data.prediction.goals.over15 === 'number'
                   ? `${Math.round(data.prediction.goals.over15 * 100)}%`
@@ -256,13 +243,13 @@ export function PredictionCard({
                   : 'bg-primary/5 dark:bg-primary/10',
               )}
             >
-              <div className="text-xs opacity-80 mb-0.5">Last 10'</div>
+              <div className="text-xs opacity-80 mb-0.5">Away Next</div>
               <div className={cn(
                 'text-xl font-bold',
                 final10Prob && final10Prob > 30 ? 'text-amber-600 dark:text-amber-400' : 'text-primary dark:text-primary-foreground',
               )}
               >
-                {final10Prob !== null ? `${final10Prob}%` : '-'}
+                {Math.round(data.prediction.winProbability.away * 100)}%
               </div>
             </div>
           </div>
@@ -271,12 +258,17 @@ export function PredictionCard({
         {/* Additional info like hot prediction box */}
         {!isCompact && data.prediction.confidence > 0.7 && (
           <div className={cn(
-            'px-3 py-1.5 text-sm font-medium text-center',
+            'px-3 py-1.5 text-sm font-medium',
             'border-t border-border/60 backdrop-blur-sm',
-            betBoxColor,
+            getNextScorerBetColor(data),
           )}
           >
-            {getHighConfidenceTip(data)}
+            <div className="flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+              </svg>
+              {getHighConfidenceTip(data)}
+            </div>
           </div>
         )}
 
@@ -338,17 +330,197 @@ export function PredictionCard({
 // Helper to get high confidence tip text
 function getHighConfidenceTip(data: MatchPrediction): string {
   const confidence = data.prediction.confidence
-  let confidenceStr = ''
+  
+  // Determine which team is more likely to score next
+  const homeWinProb = data.prediction.winProbability.home;
+  const awayWinProb = data.prediction.winProbability.away;
+  
+  // Use ProPredict terminology for high accuracy predictions
+  if (confidence >= 0.85) {
+    // Check if we have temporal data available for more precise prediction
+    if (data.temporalGoalProbability) {
+      // If there's momentum analysis, use it to determine next scorer
+      if (data.temporalGoalProbability.momentumAnalysis) {
+        const attackMomentum = data.temporalGoalProbability.momentumAnalysis.attackMomentum;
+        
+        if (attackMomentum > 0.6) {
+          return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`;
+        } else if (attackMomentum < 0.4) {
+          return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`;
+        }
+      }
+      
+      // Use team comparison if available
+      if (data.temporalGoalProbability.teamComparison) {
+        const homeStats = data.temporalGoalProbability.teamComparison.home;
+        const awayStats = data.temporalGoalProbability.teamComparison.away;
+        
+        if (homeStats.pressureIntensity > awayStats.pressureIntensity * 1.5) {
+          return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`;
+        } else if (awayStats.pressureIntensity > homeStats.pressureIntensity * 1.5) {
+          return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`;
+        }
+      }
+    }
+    
+    // If no temporal data, use basic stats for high confidence predictions
+    if (data.stats) {
+      const homePossession = data.stats.possession.home;
+      const awayPossession = data.stats.possession.away;
+      const homeShotsOnTarget = data.stats.shots.home.onTarget;
+      const awayShotsOnTarget = data.stats.shots.away.onTarget;
+      const homeDangerousAttacks = data.stats.attacks.home.dangerous;
+      const awayDangerousAttacks = data.stats.attacks.away.dangerous;
+      
+      // Calculate a simple scoring likelihood score
+      const homeScore = (homePossession/100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01);
+      const awayScore = (awayPossession/100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01);
+      
+      if (homeScore > awayScore * 1.3) {
+        return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`;
+      } else if (awayScore > homeScore * 1.3) {
+        return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`;
+      }
+    }
+    
+    // Fallback to win probability for high confidence cases
+    if (homeWinProb > awayWinProb * 1.5) {
+      return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`;
+    } else if (awayWinProb > homeWinProb * 1.5) {
+      return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`;
+    }
+    
+    // Default for high confidence but unclear which team
+    return `ProPredict: Goal expected soon (${Math.round(confidence * 100)}%)`;
+  } else if (confidence >= 0.7) {
+    // Medium confidence predictions - just indicate a goal is expected
+    const goalProb = data.prediction.goals?.over15 || 0;
+    if (goalProb > 0.65) {
+      return `ProPredict: Goal expected (${Math.round(goalProb * 100)}%)`;
+    }
+    
+    // Basic prediction without specifying team for medium confidence
+    return `ProPredict: Next goal opportunity (${Math.round(confidence * 100)}%)`;
+  }
+  
+  // Low confidence prediction
+  return `ProPredict: Analyzing match data...`;
+}
 
-  if (confidence >= 0.9) {
-    confidenceStr = 'Very High Confidence'
+// Helper to determine the color for the next scorer bet box
+function getNextScorerBetColor(data: MatchPrediction): string {
+  // Default color for ProPredict
+  let betBoxColor = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  
+  const confidence = data.prediction.confidence;
+  
+  // High confidence predictions get more vibrant colors
+  if (confidence >= 0.85) {
+    // Determine which team is more likely to score next
+    const isHomeTeamLikely = isHomeTeamLikelyToScoreNext(data);
+    const isAwayTeamLikely = isAwayTeamLikelyToScoreNext(data);
+    
+    if (isHomeTeamLikely) {
+      // More vibrant yellow for home team
+      betBoxColor = 'bg-yellow-200 text-yellow-900 dark:bg-yellow-800/50 dark:text-yellow-200';
+    } else if (isAwayTeamLikely) {
+      // More vibrant blue for away team
+      betBoxColor = 'bg-blue-200 text-blue-900 dark:bg-blue-800/50 dark:text-blue-200';
+    } else {
+      // For high confidence but unclear which team, use a vibrant green
+      const goalProb = data.prediction.goals?.over15 || 0;
+      if (goalProb > 0.65) {
+        betBoxColor = 'bg-green-200 text-green-900 dark:bg-green-800/50 dark:text-green-200';
+      } else {
+        // For high confidence general predictions - purple gradient
+        betBoxColor = 'bg-gradient-to-r from-indigo-200 to-purple-200 text-purple-900 dark:bg-gradient-to-r dark:from-indigo-900/50 dark:to-purple-900/50 dark:text-purple-200';
+      }
+    }
+  } else if (confidence >= 0.7) {
+    // Medium confidence - more muted colors but still clear
+    const goalProb = data.prediction.goals?.over15 || 0;
+    if (goalProb > 0.65) {
+      betBoxColor = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
+    } else {
+      betBoxColor = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
+    }
   }
-  else if (confidence >= 0.8) {
-    confidenceStr = 'High Confidence'
-  }
-  else if (confidence >= 0.7) {
-    confidenceStr = 'Good Confidence'
-  }
+  
+  return betBoxColor;
+}
 
-  return `${confidenceStr}: ${data.prediction.recommendedBet}`
+// Helper to check if home team is likely to score next
+function isHomeTeamLikelyToScoreNext(data: MatchPrediction): boolean {
+  const homeWinProb = data.prediction.winProbability.home;
+  const awayWinProb = data.prediction.winProbability.away;
+  
+  // Check temporal data first
+  if (data.temporalGoalProbability) {
+    if (data.temporalGoalProbability.momentumAnalysis) {
+      const attackMomentum = data.temporalGoalProbability.momentumAnalysis.attackMomentum;
+      if (attackMomentum > 0.6) return true;
+    }
+    
+    if (data.temporalGoalProbability.teamComparison) {
+      const homeStats = data.temporalGoalProbability.teamComparison.home;
+      const awayStats = data.temporalGoalProbability.teamComparison.away;
+      if (homeStats.pressureIntensity > awayStats.pressureIntensity * 1.5) return true;
+    }
+  }
+  
+  // Check basic stats
+  if (data.stats) {
+    const homePossession = data.stats.possession.home;
+    const awayPossession = data.stats.possession.away;
+    const homeShotsOnTarget = data.stats.shots.home.onTarget;
+    const awayShotsOnTarget = data.stats.shots.away.onTarget;
+    const homeDangerousAttacks = data.stats.attacks.home.dangerous;
+    const awayDangerousAttacks = data.stats.attacks.away.dangerous;
+    
+    const homeScore = (homePossession/100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01);
+    const awayScore = (awayPossession/100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01);
+    
+    if (homeScore > awayScore * 1.3) return true;
+  }
+  
+  // Fall back to win probability
+  return homeWinProb > awayWinProb * 1.5;
+}
+
+// Helper to check if away team is likely to score next
+function isAwayTeamLikelyToScoreNext(data: MatchPrediction): boolean {
+  const homeWinProb = data.prediction.winProbability.home;
+  const awayWinProb = data.prediction.winProbability.away;
+  
+  // Check temporal data first
+  if (data.temporalGoalProbability) {
+    if (data.temporalGoalProbability.momentumAnalysis) {
+      const attackMomentum = data.temporalGoalProbability.momentumAnalysis.attackMomentum;
+      if (attackMomentum < 0.4) return true;
+    }
+    
+    if (data.temporalGoalProbability.teamComparison) {
+      const homeStats = data.temporalGoalProbability.teamComparison.home;
+      const awayStats = data.temporalGoalProbability.teamComparison.away;
+      if (awayStats.pressureIntensity > homeStats.pressureIntensity * 1.5) return true;
+    }
+  }
+  
+  // Check basic stats
+  if (data.stats) {
+    const homePossession = data.stats.possession.home;
+    const awayPossession = data.stats.possession.away;
+    const homeShotsOnTarget = data.stats.shots.home.onTarget;
+    const awayShotsOnTarget = data.stats.shots.away.onTarget;
+    const homeDangerousAttacks = data.stats.attacks.home.dangerous;
+    const awayDangerousAttacks = data.stats.attacks.away.dangerous;
+    
+    const homeScore = (homePossession/100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01);
+    const awayScore = (awayPossession/100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01);
+    
+    if (awayScore > homeScore * 1.3) return true;
+  }
+  
+  // Fall back to win probability
+  return awayWinProb > homeWinProb * 1.5;
 }
