@@ -144,21 +144,21 @@ export interface Match {
     }
   }
   temporalStats?: {
-    windows: TemporalWindow[];
-    metrics: TemporalStats[];
+    windows: TemporalWindow[]
+    metrics: TemporalStats[]
   }
   momentumHistory?: {
-    attack: number[];
-    defense: number[];
+    attack: number[]
+    defense: number[]
   }
   fatigueEstimation?: {
-    home: number;
-    away: number;
+    home: number
+    away: number
   }
   criticalZones?: {
-    leftChannel: number;
-    centerBox: number;
-    rightChannel: number;
+    leftChannel: number
+    centerBox: number
+    rightChannel: number
   }
 }
 
@@ -249,56 +249,56 @@ export interface MatchPrediction {
     }
   }
   temporalGoalProbability?: {
-    windows: WindowAnalysis[];
+    windows: WindowAnalysis[]
     keyMoments: {
-      preWindowGoals: MatchEvent[];
-      pressureBuildUp: MatchEvent[];
-      defensiveErrors: MatchEvent[];
+      preWindowGoals: MatchEvent[]
+      pressureBuildUp: MatchEvent[]
+      defensiveErrors: MatchEvent[]
     }
     teamComparison: {
-      home: TeamWindowStats;
-      away: TeamWindowStats;
+      home: TeamWindowStats
+      away: TeamWindowStats
     }
     momentumAnalysis: {
-      attackMomentum: number;
-      defenseStability: number;
-      fatigueIndex: number;
+      attackMomentum: number
+      defenseStability: number
+      fatigueIndex: number
     }
-    lastUpdated: string;
+    lastUpdated: string
   }
   lastUpdated: string
 }
 
 export interface TemporalWindow {
-  start: number;
-  end: number;
-  label: string;
+  start: number
+  end: number
+  label: string
 }
 
 export interface WindowAnalysis {
-  window: TemporalWindow;
-  probability: number;
-  keyFactors: string[];
-  pressureIndex: number;
-  dangerRatio: number;
-  shotFrequency: number;
-  setPieceCount: number;
+  window: TemporalWindow
+  probability: number
+  keyFactors: string[]
+  pressureIndex: number
+  dangerRatio: number
+  shotFrequency: number
+  setPieceCount: number
 }
 
 export interface TemporalStats {
-  window: TemporalWindow;
-  shots: number;
-  shotsOnTarget: number;
-  dangerousAttacks: number;
-  corners: number;
-  freekicks: number;
-  cards: number;
-  expectedGoals: number;
+  window: TemporalWindow
+  shots: number
+  shotsOnTarget: number
+  dangerousAttacks: number
+  corners: number
+  freekicks: number
+  cards: number
+  expectedGoals: number
 }
 
 export interface TeamWindowStats {
-  pressureIntensity: number;
-  defensiveActions: number;
-  transitionSpeed: number;
-  setPieceEfficiency: number;
+  pressureIntensity: number
+  defensiveActions: number
+  transitionSpeed: number
+  setPieceEfficiency: number
 }

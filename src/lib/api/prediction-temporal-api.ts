@@ -1,5 +1,4 @@
-import type { LiveScoreResponse, Match, MatchEvent, MatchPrediction, TeamWindowStats, TemporalWindow, WindowAnalysis } from '@/types'
-import { cache } from 'react'
+import type { Match, MatchEvent, MatchPrediction, TeamWindowStats, TemporalWindow, WindowAnalysis } from '@/types'
 
 // Define the key temporal windows for analysis
 export const PREDICTION_WINDOWS: TemporalWindow[] = [
@@ -50,7 +49,7 @@ export function filterEventsByWindow(
  */
 function calculatePressureIndex(
   windowEvents: MatchEvent[],
-  stats: any,
+  _stats: any,
   windowMinutes: number,
 ): number {
   const shots = windowEvents.filter(e => e.type === 'goal' || e.isDangerous).length
@@ -156,7 +155,7 @@ function analyzeAttackSequence(events: MatchEvent[]): number {
 function identifyKeyFactors(
   windowEvents: MatchEvent[],
   window: TemporalWindow,
-  stats: any,
+  _stats: any,
 ): string[] {
   const factors: string[] = []
 
@@ -237,9 +236,9 @@ function calculateTeamWindowStats(
 function calculateGoalProbability(
   events: MatchEvent[],
   window: TemporalWindow,
-  match: Match,
+  _match: Match,
 ): number {
-  const windowEvents = filterEventsByWindow(events, window)
+  const _windowEvents = filterEventsByWindow(events, window)
   const buildupEvents = filterEventsByWindow(events, window, true)
 
   // Base probability factors

@@ -279,8 +279,14 @@ function analyzeMatch(match: Match): MatchPrediction | null {
           away: awayTeamStats?.corners || 0,
         },
         cards: {
-          home: homeTeamStats?.yellowcards || 0,
-          away: awayTeamStats?.yellowcards || 0,
+          home: {
+            yellow: homeTeamStats?.yellowcards || 0,
+            red: homeTeamStats?.redcards || 0,
+          },
+          away: {
+            yellow: awayTeamStats?.yellowcards || 0,
+            red: awayTeamStats?.redcards || 0,
+          },
         },
       },
       lastUpdated: new Date().toISOString(),

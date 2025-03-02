@@ -1,5 +1,6 @@
 // src/app/(predictions)/[matchId]/page.tsx
 
+import type { MatchPrediction, TeamWindowStats } from '@/types'
 import { TemporalPrediction } from '@/components/temporal-prediction'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { LiveBadge } from '@/components/ui/live-badge'
@@ -13,6 +14,55 @@ interface MatchPageProps {
   params: Promise<{
     matchId: string
   }>
+}
+
+interface TeamInsightsCardProps {
+  team: MatchPrediction['teams']['home'] | MatchPrediction['teams']['away']
+  stats: TeamWindowStats
+}
+
+function TeamInsightsCard({ team, stats }: TeamInsightsCardProps) {
+  return (
+    <div className="border border-border rounded-lg p-3 bg-card">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="relative w-6 h-6">
+          <Image
+            src={team.logoUrl || '/placeholder-team.png'}
+            alt={team.name}
+            fill
+            sizes="24px"
+            className="object-contain"
+          />
+        </div>
+        <span className="font-medium text-sm">{team.name}</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
+          <div className="text-[10px] opacity-70 mb-0.5">Pressure</div>
+          <div className="font-bold">
+            {Math.round(stats.pressureIntensity * 100)}
+            %
+          </div>
+        </div>
+        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
+          <div className="text-[10px] opacity-70 mb-0.5">Defense</div>
+          <div className="font-bold">{stats.defensiveActions}</div>
+        </div>
+        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
+          <div className="text-[10px] opacity-70 mb-0.5">Transitions</div>
+          <div className="font-bold">{Math.round(stats.transitionSpeed * 10) / 10}</div>
+        </div>
+        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
+          <div className="text-[10px] opacity-70 mb-0.5">Set Pieces</div>
+          <div className="font-bold">
+            {Math.round(stats.setPieceEfficiency * 100)}
+            %
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default async function MatchPredictionPage({
@@ -282,31 +332,51 @@ export default async function MatchPredictionPage({
           <div className="mt-6 mb-4">
             <TemporalPrediction
               windows={prediction.temporalGoalProbability.windows}
-              className="bg-amber-50 p-3 rounded-lg border border-amber-100"
+              teamComparison={prediction.temporalGoalProbability.teamComparison}
+              events={prediction.temporalGoalProbability.keyMoments.pressureBuildUp}
+              className="bg-amber-50 p-4 rounded-lg border border-amber-100 dark:bg-amber-950/10 dark:border-amber-800/20"
             />
 
             {/* Momentum Analysis - Top level insights */}
             {prediction.temporalGoalProbability.momentumAnalysis && (
-              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-xs text-gray-500 mb-1">Attack Momentum</div>
-                  <div className="font-bold">
-                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.attackMomentum * 100)}
-                    %
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Match Dynamics</h3>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
+                    <div className="text-xs text-gray-500 mb-1">Attack Momentum</div>
+                    <div className="font-bold">
+                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.attackMomentum * 100)}
+                      %
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
+                    <div className="text-xs text-gray-500 mb-1">Defense Stability</div>
+                    <div className="font-bold">
+                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.defenseStability * 100)}
+                      %
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
+                    <div className="text-xs text-gray-500 mb-1">Fatigue Index</div>
+                    <div className="font-bold">
+                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.fatigueIndex * 100)}
+                      %
+                    </div>
                   </div>
                 </div>
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-xs text-gray-500 mb-1">Defense Stability</div>
-                  <div className="font-bold">
-                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.defenseStability * 100)}
-                    %
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded text-center">
-                  <div className="text-xs text-gray-500 mb-1">Fatigue Index</div>
-                  <div className="font-bold">
-                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.fatigueIndex * 100)}
-                    %
+
+                {/* Team comparison section */}
+                <div className="mt-4 border-t border-border pt-3">
+                  <h3 className="text-sm font-medium mb-2">Team Comparison</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <TeamInsightsCard
+                      team={prediction.teams.home}
+                      stats={prediction.temporalGoalProbability.teamComparison.home}
+                    />
+                    <TeamInsightsCard
+                      team={prediction.teams.away}
+                      stats={prediction.temporalGoalProbability.teamComparison.away}
+                    />
                   </div>
                 </div>
               </div>
