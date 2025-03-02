@@ -320,6 +320,8 @@ export function analyzeTemporal(match: Match): WindowAnalysis[] {
       dangerRatio,
       shotFrequency,
       setPieceCount,
+      goalIntensity: pressureIndex * 0.8, // Default calculation based on pressure index
+      patternStrength: Math.min(setPieceCount * 0.5 + shotFrequency * 0.5, 10), // Default calculation based on existing metrics
     })
   })
 

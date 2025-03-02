@@ -26,7 +26,10 @@ export function LiveBadge({
         className,
       )}
       >
-        <span className="text-amber-500 dark:text-amber-400">HT</span>
+        <span className="text-amber-500 dark:text-amber-400 flex items-center">
+          <span className="inline-block w-1.5 h-1.5 bg-amber-500 dark:bg-amber-400 rounded-full mr-1.5"></span>
+          HT
+        </span>
       </div>
     )
   }
@@ -38,7 +41,7 @@ export function LiveBadge({
         className,
       )}
       >
-        <span className="text-gray-500 dark:text-gray-400">FT</span>
+        <span className="text-muted-foreground">FT</span>
       </div>
     )
   }
@@ -60,7 +63,7 @@ export function LiveBadge({
           &apos;
         </span>
         {period && (
-          <span className="text-gray-500 dark:text-gray-400">
+          <span className="text-muted-foreground">
             •
             {period}
           </span>
@@ -78,7 +81,7 @@ export function LiveBadge({
         className,
       )}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
@@ -90,7 +93,7 @@ export function LiveBadge({
   // For other statuses
   return (
     <div className={cn(
-      'flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400',
+      'flex items-center gap-1 text-xs font-medium text-muted-foreground',
       className,
     )}
     >

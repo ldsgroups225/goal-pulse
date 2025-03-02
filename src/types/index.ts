@@ -283,6 +283,8 @@ export interface WindowAnalysis {
   dangerRatio: number
   shotFrequency: number
   setPieceCount: number
+  goalIntensity: number
+  patternStrength: number
 }
 
 export interface TemporalStats {

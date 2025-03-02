@@ -23,7 +23,7 @@ interface TeamInsightsCardProps {
 
 function TeamInsightsCard({ team, stats }: TeamInsightsCardProps) {
   return (
-    <div className="border border-border rounded-lg p-3 bg-card">
+    <div className="border border-border rounded-lg p-3 bg-card shadow-sm">
       <div className="flex items-center gap-2 mb-3">
         <div className="relative w-6 h-6">
           <Image
@@ -34,28 +34,28 @@ function TeamInsightsCard({ team, stats }: TeamInsightsCardProps) {
             className="object-contain"
           />
         </div>
-        <span className="font-medium text-sm">{team.name}</span>
+        <span className="font-medium text-sm text-card-foreground">{team.name}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
-          <div className="text-[10px] opacity-70 mb-0.5">Pressure</div>
-          <div className="font-bold">
+        <div className="text-xs bg-background/50 dark:bg-muted/30 p-1.5 rounded border border-border/40">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Pressure</div>
+          <div className="font-bold text-card-foreground">
             {Math.round(stats.pressureIntensity * 100)}
             %
           </div>
         </div>
-        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
-          <div className="text-[10px] opacity-70 mb-0.5">Defense</div>
-          <div className="font-bold">{stats.defensiveActions}</div>
+        <div className="text-xs bg-background/50 dark:bg-muted/30 p-1.5 rounded border border-border/40">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Defense</div>
+          <div className="font-bold text-card-foreground">{stats.defensiveActions}</div>
         </div>
-        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
-          <div className="text-[10px] opacity-70 mb-0.5">Transitions</div>
-          <div className="font-bold">{Math.round(stats.transitionSpeed * 10) / 10}</div>
+        <div className="text-xs bg-background/50 dark:bg-muted/30 p-1.5 rounded border border-border/40">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Transitions</div>
+          <div className="font-bold text-card-foreground">{Math.round(stats.transitionSpeed * 10) / 10}</div>
         </div>
-        <div className="text-xs bg-background/50 dark:bg-background/20 p-1.5 rounded">
-          <div className="text-[10px] opacity-70 mb-0.5">Set Pieces</div>
-          <div className="font-bold">
+        <div className="text-xs bg-background/50 dark:bg-muted/30 p-1.5 rounded border border-border/40">
+          <div className="text-[10px] text-muted-foreground mb-0.5">Set Pieces</div>
+          <div className="font-bold text-card-foreground">
             {Math.round(stats.setPieceEfficiency * 100)}
             %
           </div>
@@ -70,7 +70,6 @@ export default async function MatchPredictionPage({
 }: MatchPageProps) {
   const { matchId: matchIdStr } = await params
   const matchId = Number.parseInt(matchIdStr, 10)
-  const randomId = Math.random().toString(36).substring(2, 9)
 
   if (Number.isNaN(matchId)) {
     notFound()
@@ -108,7 +107,7 @@ export default async function MatchPredictionPage({
       <div className="px-4 pt-2 pb-4">
         <Link
           href="/"
-          className="inline-flex items-center text-sm font-medium text-gray-700"
+          className="inline-flex items-center text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
             <path d="m15 18-6-6 6-6" />
@@ -118,8 +117,8 @@ export default async function MatchPredictionPage({
       </div>
 
       {/* Match Header */}
-      <div className="bg-white rounded-t-xl overflow-hidden shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="bg-card dark:bg-card/95 rounded-t-xl overflow-hidden shadow-sm border border-border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <CountryFlag
               country={prediction.league.country}
@@ -127,8 +126,8 @@ export default async function MatchPredictionPage({
               size="md"
             />
             <div className="flex flex-col">
-              <span className="text-sm font-medium">{prediction.league.name}</span>
-              <span className="text-xs text-gray-500">{prediction.league.country}</span>
+              <span className="text-sm font-medium text-card-foreground">{prediction.league.name}</span>
+              <span className="text-xs text-muted-foreground">{prediction.league.country}</span>
             </div>
           </div>
 
@@ -141,7 +140,7 @@ export default async function MatchPredictionPage({
         </div>
 
         {/* Teams & Score */}
-        <div className="p-6 bg-gray-50">
+        <div className="p-6 bg-background/50 dark:bg-muted/10">
           <div className="flex items-center justify-between mb-6">
             <div className="flex flex-col items-center gap-2 w-5/12">
               <div className="w-16 h-16 relative">
@@ -153,13 +152,13 @@ export default async function MatchPredictionPage({
                   className="object-contain"
                 />
               </div>
-              <span className="text-center font-medium">{prediction.teams.home.name}</span>
+              <span className="text-center font-medium text-card-foreground">{prediction.teams.home.name}</span>
             </div>
 
             <div className="flex flex-col items-center justify-center w-2/12">
               {isLive
                 ? (
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-card-foreground">
                       {prediction.teams.home.score}
                       {' '}
                       -
@@ -167,7 +166,7 @@ export default async function MatchPredictionPage({
                     </div>
                   )
                 : (
-                    <div className="text-2xl font-bold text-gray-400">VS</div>
+                    <div className="text-2xl font-bold text-muted-foreground">VS</div>
                   )}
             </div>
 
@@ -181,328 +180,140 @@ export default async function MatchPredictionPage({
                   className="object-contain"
                 />
               </div>
-              <span className="text-center font-medium">{prediction.teams.away.name}</span>
+              <span className="text-center font-medium text-card-foreground">{prediction.teams.away.name}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Prediction Section */}
-      <div className="bg-white shadow-sm border border-gray-100 border-t-0 px-4 py-4">
-        <h2 className="text-lg font-bold mb-4">Match Prediction</h2>
+      <div className="bg-card dark:bg-card/95 shadow-sm border border-border border-t-0 px-4 py-4">
+        <h2 className="text-lg font-bold mb-4 text-card-foreground">Match Prediction</h2>
 
         {/* Win probability bars */}
         <div className="mb-6">
-          <div className="flex justify-between text-sm mb-1">
+          <div className="flex justify-between text-sm mb-1 text-card-foreground">
             <span>Home</span>
             <span>Draw</span>
             <span>Away</span>
           </div>
-          <div className="flex h-7 rounded-lg overflow-hidden">
+          <div className="flex h-7 rounded-lg overflow-hidden border border-border">
             <div
-              className="bg-green-500 text-white text-xs flex items-center justify-center"
+              className="bg-score-home h-full flex items-center justify-center text-xs font-medium text-primary-foreground"
               style={{ width: `${homeProb}%` }}
             >
-              {homeProb}
-              %
+              {homeProb > 10 ? `${homeProb}%` : ''}
             </div>
             <div
-              className="bg-gray-500 text-white text-xs flex items-center justify-center"
+              className="bg-score-draw h-full flex items-center justify-center text-xs font-medium text-primary-foreground"
               style={{ width: `${drawProb}%` }}
             >
-              {drawProb}
-              %
+              {drawProb > 10 ? `${drawProb}%` : ''}
             </div>
             <div
-              className="bg-blue-500 text-white text-xs flex items-center justify-center"
+              className="bg-score-away h-full flex items-center justify-center text-xs font-medium text-primary-foreground"
               style={{ width: `${awayProb}%` }}
             >
-              {awayProb}
-              %
+              {awayProb > 10 ? `${awayProb}%` : ''}
             </div>
-          </div>
-          <div className="flex justify-between text-sm font-medium mt-1">
-            <span>{(1 / (prediction.prediction.winProbability.home || 0.01)).toFixed(2)}</span>
-            <span>{(1 / (prediction.prediction.winProbability.draw || 0.01)).toFixed(2)}</span>
-            <span>{(1 / (prediction.prediction.winProbability.away || 0.01)).toFixed(2)}</span>
           </div>
         </div>
 
-        {/* Recommended bet */}
-        <div className="rounded-lg bg-gray-50 p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-medium">Recommended Bet</h3>
-            <div className={cn(
-              'px-2 py-1 rounded-full text-xs font-medium',
-              confidenceColor,
-            )}
-            >
-              {confidenceValue}
-              {' '}
-              Confidence
-            </div>
+        {/* Confidence */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm text-card-foreground">Prediction Confidence</span>
+            <span className={cn('text-sm font-medium', confidenceColor)}>{confidenceValue}</span>
           </div>
-
-          <div className="text-lg font-bold">{prediction.prediction.recommendedBet}</div>
-
-          <div className="mt-3 text-sm text-gray-600">
-            {prediction.prediction.reasons.map(reason => (
-              <div key={randomId} className="flex items-start mb-1">
-                <span className="mr-2">•</span>
-                <span>{reason}</span>
-              </div>
-            ))}
+          <div className="h-2 bg-muted dark:bg-muted/50 rounded-full overflow-hidden">
+            <div
+              className={cn('h-full', {
+                'bg-red-500 dark:bg-red-500/80': prediction.prediction.confidence < 0.4,
+                'bg-amber-500 dark:bg-amber-500/80': prediction.prediction.confidence >= 0.4 && prediction.prediction.confidence < 0.7,
+                'bg-green-500 dark:bg-green-500/80': prediction.prediction.confidence >= 0.7,
+              })}
+              style={{ width: `${Math.round(prediction.prediction.confidence * 100)}%` }}
+            />
           </div>
         </div>
 
-        {/* Goals prediction */}
+        {/* Goals grid */}
         <div className="mb-4">
-          <h3 className="font-medium mb-3">Goals Prediction</h3>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <div className="text-sm text-gray-600">Over 1.5</div>
-              <div className="flex items-center mt-1">
-                <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${over15Prob}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {over15Prob}
-                  %
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-3">
-              <div className="text-sm text-gray-600">Over 2.5</div>
-              <div className="flex items-center mt-1">
-                <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${over25Prob}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {over25Prob}
-                  %
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-3">
-              <div className="text-sm text-gray-600">Over 3.5</div>
-              <div className="flex items-center mt-1">
-                <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                  <div
-                    className="bg-green-500 h-2 rounded-full"
-                    style={{ width: `${over35Prob}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {over35Prob}
-                  %
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-3">
-              <div className="text-sm text-gray-600">BTTS</div>
-              <div className="flex items-center mt-1">
-                <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
-                  <div
-                    className="bg-yellow-500 h-2 rounded-full"
-                    style={{ width: `${bttsProb}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">
-                  {bttsProb}
-                  %
-                </span>
-              </div>
-            </div>
+          <h3 className="text-base font-semibold mb-2 text-card-foreground">Goals Prediction</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <GoalPredictionCard
+              title="Over 1.5 Goals"
+              probability={over15Prob}
+            />
+            <GoalPredictionCard
+              title="Over 2.5 Goals"
+              probability={over25Prob}
+            />
+            <GoalPredictionCard
+              title="Over 3.5 Goals"
+              probability={over35Prob}
+            />
+            <GoalPredictionCard
+              title="Both Teams Score"
+              probability={bttsProb}
+            />
           </div>
         </div>
 
-        {/* Temporal Goal Probability Section */}
-        {prediction.temporalGoalProbability?.windows
-          && prediction.temporalGoalProbability.windows.length > 0 && (
-          <div className="mt-6 mb-4">
+        {/* Team Insights */}
+        {prediction.temporalGoalProbability?.teamComparison && (
+          <div className="my-6">
+            <h3 className="text-base font-semibold mb-3 text-card-foreground">Team Insights</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <TeamInsightsCard
+                team={prediction.teams.home}
+                stats={prediction.temporalGoalProbability.teamComparison.home}
+              />
+              <TeamInsightsCard
+                team={prediction.teams.away}
+                stats={prediction.temporalGoalProbability.teamComparison.away}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Temporal prediction */}
+        {prediction.temporalGoalProbability?.windows && (
+          <div className="mt-6">
             <TemporalPrediction
               windows={prediction.temporalGoalProbability.windows}
               teamComparison={prediction.temporalGoalProbability.teamComparison}
               events={prediction.temporalGoalProbability.keyMoments.pressureBuildUp}
-              className="bg-amber-50 p-4 rounded-lg border border-amber-100 dark:bg-amber-950/10 dark:border-amber-800/20"
             />
-
-            {/* Momentum Analysis - Top level insights */}
-            {prediction.temporalGoalProbability.momentumAnalysis && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium mb-2">Match Dynamics</h3>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
-                    <div className="text-xs text-gray-500 mb-1">Attack Momentum</div>
-                    <div className="font-bold">
-                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.attackMomentum * 100)}
-                      %
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
-                    <div className="text-xs text-gray-500 mb-1">Defense Stability</div>
-                    <div className="font-bold">
-                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.defenseStability * 100)}
-                      %
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded text-center">
-                    <div className="text-xs text-gray-500 mb-1">Fatigue Index</div>
-                    <div className="font-bold">
-                      {Math.round(prediction.temporalGoalProbability.momentumAnalysis.fatigueIndex * 100)}
-                      %
-                    </div>
-                  </div>
-                </div>
-
-                {/* Team comparison section */}
-                <div className="mt-4 border-t border-border pt-3">
-                  <h3 className="text-sm font-medium mb-2">Team Comparison</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <TeamInsightsCard
-                      team={prediction.teams.home}
-                      stats={prediction.temporalGoalProbability.teamComparison.home}
-                    />
-                    <TeamInsightsCard
-                      team={prediction.teams.away}
-                      stats={prediction.temporalGoalProbability.teamComparison.away}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
+    </div>
+  )
+}
 
-      {/* Statistics Section */}
-      <div className="bg-white shadow-sm border border-gray-100 border-t-0 rounded-b-xl px-4 py-4 mt-4">
-        <h2 className="text-lg font-bold mb-4">Match Statistics</h2>
+interface GoalPredictionCardProps {
+  title: string
+  probability: number
+}
 
-        {/* Possession */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-1">
-            <span className="font-medium">
-              {prediction.stats.possession.home}
-              %
-            </span>
-            <span className="text-gray-600">Possession</span>
-            <span className="font-medium">
-              {prediction.stats.possession.away}
-              %
-            </span>
-          </div>
-          <div className="flex h-2 rounded-full overflow-hidden bg-gray-200">
-            <div
-              className="bg-green-500"
-              style={{ width: `${prediction.stats.possession.home}%` }}
-            />
-            <div
-              className="bg-blue-500"
-              style={{ width: `${prediction.stats.possession.away}%` }}
-            />
-          </div>
+function GoalPredictionCard({ title, probability }: GoalPredictionCardProps) {
+  return (
+    <div className="border border-border rounded-lg p-3 bg-background/50 dark:bg-muted/30 shadow-sm">
+      <div className="text-sm font-medium mb-2 text-card-foreground">{title}</div>
+      <div className="flex items-end justify-between">
+        <div className="text-lg font-bold text-card-foreground">
+          {probability}
+          %
         </div>
-
-        {/* Shots */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="text-center">
-            <div className="text-lg font-bold">{prediction.stats.shots.home.total}</div>
-            <div className="text-xs text-gray-600">Shots</div>
-          </div>
-          <div className="text-center border-x border-gray-100">
-            <div className="text-lg font-bold">
-              {prediction.stats.shots.home.onTarget}
-              {' '}
-              -
-              {' '}
-              {prediction.stats.shots.away.onTarget}
-            </div>
-            <div className="text-xs text-gray-600">On Target</div>
-          </div>
-          <div className="text-center">
-            <div className="text-lg font-bold">{prediction.stats.shots.away.total}</div>
-            <div className="text-xs text-gray-600">Shots</div>
-          </div>
-        </div>
-
-        {/* Other stats */}
-        <div className="space-y-3">
-          {/* Attacks */}
-          <div className="flex justify-between items-center">
-            <div className="text-right w-1/3">
-              <div className="font-medium">{prediction.stats.attacks.home.total}</div>
-              <div className="text-xs text-gray-500">
-                (
-                {prediction.stats.attacks.home.dangerous}
-                {' '}
-                dangerous)
-              </div>
-            </div>
-            <div className="text-center w-1/3 text-sm text-gray-600">Attacks</div>
-            <div className="w-1/3">
-              <div className="font-medium">{prediction.stats.attacks.away.total}</div>
-              <div className="text-xs text-gray-500">
-                (
-                {prediction.stats.attacks.away.dangerous}
-                {' '}
-                dangerous)
-              </div>
-            </div>
-          </div>
-
-          {/* Cards */}
-          <div className="flex justify-between items-center">
-            <div className="text-right w-1/3">
-              <div className="font-medium">
-                <span className="text-yellow-500 mr-1">■</span>
-                {prediction.stats.cards.home.yellow}
-              </div>
-              <div className="font-medium mt-1">
-                <span className="text-red-500 mr-1">■</span>
-                {prediction.stats.cards.home.red}
-              </div>
-            </div>
-            <div className="text-center w-1/3 text-sm text-gray-600">Cards</div>
-            <div className="w-1/3">
-              <div className="font-medium">
-                <span className="text-yellow-500 mr-1">■</span>
-                {prediction.stats.cards.away.yellow}
-              </div>
-              <div className="font-medium mt-1">
-                <span className="text-red-500 mr-1">■</span>
-                {prediction.stats.cards.away.red}
-              </div>
-            </div>
-          </div>
-
-          {/* Corners */}
-          <div className="flex justify-between items-center">
-            <div className="text-right w-1/3">
-              <div className="font-medium">{prediction.stats.corners.home}</div>
-            </div>
-            <div className="text-center w-1/3 text-sm text-gray-600">Corners</div>
-            <div className="w-1/3">
-              <div className="font-medium">{prediction.stats.corners.away}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Last updated timestamp */}
-        <div className="text-xs text-gray-400 text-center mt-6">
-          Last updated:
-          {' '}
-          {new Date(prediction.lastUpdated).toLocaleTimeString()}
+        <div
+          className={cn('text-xs px-1.5 py-0.5 rounded', {
+            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': probability < 50,
+            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': probability >= 50 && probability < 70,
+            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': probability >= 70,
+          })}
+        >
+          {probability < 50 ? 'Low' : probability < 70 ? 'Medium' : 'High'}
         </div>
       </div>
     </div>

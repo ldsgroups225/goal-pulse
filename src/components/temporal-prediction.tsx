@@ -38,8 +38,8 @@ export function TemporalPrediction({ windows, teamComparison: _teamComparison, e
   return (
     <div className={cn('space-y-4', className)}>
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Goal Timing Analysis</h3>
-        <span className="text-xs text-muted-foreground bg-primary-foreground/10 px-2 py-1 rounded">
+        <h3 className="text-lg font-semibold text-card-foreground">Goal Timing Analysis</h3>
+        <span className="text-xs text-muted-foreground bg-accent/40 dark:bg-accent/20 px-2 py-1 rounded">
           Advanced Prediction
         </span>
       </div>
@@ -90,9 +90,9 @@ function MatchTimeline({ windows: _windows, highestFirstHalf, highestSecondHalf 
   return (
     <div className="relative py-3">
       {/* Timeline base */}
-      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full relative">
+      <div className="h-2 bg-muted dark:bg-muted/50 rounded-full relative">
         {/* Halftime marker */}
-        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-gray-400 dark:bg-gray-500 -ml-0.5 z-10" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-border dark:bg-border -ml-0.5 z-10" />
 
         {/* First half hotspot */}
         {highestFirstHalf && (
@@ -107,7 +107,7 @@ function MatchTimeline({ windows: _windows, highestFirstHalf, highestSecondHalf 
               opacity: Math.max(0.5, highestFirstHalf.probability),
             }}
           >
-            <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
+            <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-card text-card-foreground border border-border text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap shadow-sm">
               {Math.round(highestFirstHalf.probability * 100)}
               % (
               {highestFirstHalf.window.label}
@@ -129,7 +129,7 @@ function MatchTimeline({ windows: _windows, highestFirstHalf, highestSecondHalf 
               opacity: Math.max(0.5, highestSecondHalf.probability),
             }}
           >
-            <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
+            <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-card text-card-foreground border border-border text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap shadow-sm">
               {Math.round(highestSecondHalf.probability * 100)}
               % (
               {highestSecondHalf.window.label}
@@ -173,14 +173,14 @@ function HalfPrediction({ title, windows, highlight }: HalfPredictionProps) {
 
   return (
     <div className={cn(
-      'border rounded-lg p-3',
+      'border rounded-lg p-3 shadow-sm',
       highlightWindow && highlightWindow.probability > 0.3
-        ? 'border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/10'
+        ? 'border-amber-200 bg-amber-50/60 dark:border-amber-900/30 dark:bg-amber-900/10'
         : 'border-border bg-card',
     )}
     >
       <div className="flex justify-between items-center mb-2">
-        <h4 className="font-medium text-sm">{title}</h4>
+        <h4 className="font-medium text-sm text-card-foreground">{title}</h4>
         {highlightWindow && (
           <span className={cn('text-sm font-bold', probabilityColor)}>
             {probabilityPercentage}
@@ -199,23 +199,21 @@ function HalfPrediction({ title, windows, highlight }: HalfPredictionProps) {
               </div>
 
               <div className="flex gap-2 mt-2 text-xs">
-                <div className="flex-1 bg-background dark:bg-background/20 rounded-md p-1.5 text-center">
-                  <div className="text-[10px] opacity-70">Shot Freq.</div>
-                  <div className="font-bold">
-                    {highlightWindow.shotFrequency.toFixed(1)}
-                    /min
-                  </div>
-                </div>
-                <div className="flex-1 bg-background dark:bg-background/20 rounded-md p-1.5 text-center">
-                  <div className="text-[10px] opacity-70">Top Factor</div>
-                  <div className="font-bold">{highlightWindow.keyFactors[0]?.split(' ')[0] || 'N/A'}</div>
-                </div>
+                <StatBadge
+                  label="Intensity"
+                  value={highlightWindow.goalIntensity.toFixed(1)}
+                  color={getIntensityColor(highlightWindow.goalIntensity)}
+                />
+                <StatBadge
+                  label="Pattern"
+                  value={highlightWindow.patternStrength.toFixed(1)}
+                />
               </div>
             </>
           )
         : (
-            <div className="text-xs text-muted-foreground py-3 text-center">
-              No significant goal threat detected
+            <div className="text-xs text-muted-foreground">
+              No significant goal probability in this half
             </div>
           )}
     </div>
@@ -224,68 +222,59 @@ function HalfPrediction({ title, windows, highlight }: HalfPredictionProps) {
 
 interface TimeWindowCardProps {
   window: WindowAnalysis
-  isHighest: boolean
+  isHighest?: boolean
 }
 
-function TimeWindowCard({ window, isHighest }: TimeWindowCardProps) {
-  // Format probability as percentage
-  const probabilityPercent = Math.round(window.probability * 100)
-
-  // Color coding based on probability
-  const probabilityColor = getTextColor(probabilityPercent)
-  const barColor = getBarColor(probabilityPercent)
+function TimeWindowCard({ window, isHighest = false }: TimeWindowCardProps) {
+  const probabilityPercentage = Math.round(window.probability * 100)
+  const barColor = getBarColor(window.probability)
+  const textColor = getTextColor(window.probability)
 
   return (
     <div className={cn(
-      'rounded-lg border border-border p-3 bg-card',
-      isHighest && 'ring-2 ring-primary/30 dark:ring-primary/20 bg-primary/5',
+      'border rounded-lg p-3 transition-colors',
+      isHighest
+        ? 'border-amber-200 bg-amber-50/60 dark:border-amber-900/30 dark:bg-amber-900/10'
+        : 'border-border bg-card',
     )}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-medium">{window.window.label}</span>
-        <span className={cn('font-bold', probabilityColor)}>
-          {probabilityPercent}
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium text-card-foreground">{window.window.label}</span>
+          {isHighest && (
+            <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] px-1.5 rounded">
+              Highest
+            </span>
+          )}
+        </div>
+        <span className={cn('text-sm font-bold', textColor)}>
+          {probabilityPercentage}
           %
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mb-3">
+      <div className="h-2 bg-muted dark:bg-muted/50 rounded-full overflow-hidden mb-3">
         <div
-          className={cn('h-2 rounded-full', barColor)}
-          style={{ width: `${probabilityPercent}%` }}
+          className={cn('h-full rounded-full', barColor)}
+          style={{ width: `${probabilityPercentage}%` }}
         />
       </div>
 
-      {/* Factors */}
-      <div className="text-sm text-muted-foreground">
-        {window.keyFactors.length > 0
-          ? (
-              <>
-                <span className="font-medium mr-1">Key factors:</span>
-                {window.keyFactors.join(', ')}
-              </>
-            )
-          : (
-              'No significant factors'
-            )}
-      </div>
-
-      {/* Stats */}
-      <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+      {/* Detailed stats */}
+      <div className="grid grid-cols-3 gap-2 mt-2">
         <StatBadge
-          label="Pressure"
-          value={`${Math.round(window.pressureIndex * 100)}%`}
-          color={window.pressureIndex > 0.5 ? 'text-red-600' : 'text-blue-600'}
+          label="Time"
+          value={`${window.window.start}'–${window.window.end}'`}
         />
         <StatBadge
-          label="Shot Rate"
-          value={window.shotFrequency.toFixed(1)}
-          suffix="/min"
+          label="Intensity"
+          value={window.goalIntensity.toFixed(1)}
+          color={getIntensityColor(window.goalIntensity)}
         />
         <StatBadge
-          label="Set Pieces"
-          value={window.setPieceCount.toString()}
+          label="Pattern"
+          value={window.patternStrength.toFixed(1)}
         />
       </div>
     </div>
@@ -301,49 +290,68 @@ interface StatBadgeProps {
 
 function StatBadge({ label, value, suffix = '', color }: StatBadgeProps) {
   return (
-    <div className="bg-secondary/40 dark:bg-secondary/20 rounded px-2 py-1 flex flex-col items-center justify-center">
-      <span className="text-[10px] opacity-70">{label}</span>
-      <span className={cn('font-bold', color)}>
+    <div className="border border-border/40 bg-background/50 dark:bg-muted/20 p-1.5 rounded text-center">
+      <div className="text-[10px] text-muted-foreground mb-0.5">{label}</div>
+      <div className={cn('font-medium text-card-foreground', color)}>
         {value}
         {suffix}
-      </span>
+      </div>
     </div>
   )
 }
 
 // Helper functions
 function getTextColor(probability: number): string {
-  if (probability >= 60)
-    return 'text-red-600 dark:text-red-400'
-  if (probability >= 40)
-    return 'text-amber-600 dark:text-amber-400'
-  if (probability >= 25)
-    return 'text-yellow-600 dark:text-yellow-400'
-  if (probability >= 15)
+  if (probability < 30) {
+    return 'text-gray-600 dark:text-gray-400'
+  }
+  if (probability < 50) {
     return 'text-blue-600 dark:text-blue-400'
-  return 'text-gray-500'
+  }
+  if (probability < 70) {
+    return 'text-amber-600 dark:text-amber-400'
+  }
+  return 'text-green-600 dark:text-green-400'
 }
 
 function getBarColor(probability: number): string {
-  if (probability >= 60)
-    return 'bg-red-500 dark:bg-red-500'
-  if (probability >= 40)
-    return 'bg-amber-500 dark:bg-amber-500'
-  if (probability >= 25)
-    return 'bg-yellow-500 dark:bg-yellow-500'
-  if (probability >= 15)
-    return 'bg-blue-500 dark:bg-blue-500'
-  return 'bg-gray-300 dark:bg-gray-700'
+  if (probability < 0.3) {
+    return 'bg-gray-400 dark:bg-gray-500'
+  }
+  if (probability < 0.5) {
+    return 'bg-blue-500 dark:bg-blue-500/80'
+  }
+  if (probability < 0.7) {
+    return 'bg-amber-500 dark:bg-amber-500/80'
+  }
+  return 'bg-green-500 dark:bg-green-500/80'
 }
 
 function getHotspotColor(probability: number): string {
-  if (probability >= 0.6)
-    return 'bg-red-500 dark:bg-red-500'
-  if (probability >= 0.4)
-    return 'bg-amber-500 dark:bg-amber-500'
-  if (probability >= 0.25)
-    return 'bg-yellow-500 dark:bg-yellow-500'
-  if (probability >= 0.15)
-    return 'bg-blue-500 dark:bg-blue-500'
-  return 'bg-gray-400 dark:bg-gray-600'
+  if (probability < 0.3) {
+    return 'bg-gray-400/70 dark:bg-gray-500/60'
+  }
+  if (probability < 0.5) {
+    return 'bg-blue-400/70 dark:bg-blue-500/60'
+  }
+  if (probability < 0.7) {
+    return 'bg-amber-400/70 dark:bg-amber-500/60'
+  }
+  return 'bg-green-400/70 dark:bg-green-500/60'
+}
+
+function getIntensityColor(intensity: number): string | undefined {
+  if (intensity < 3) {
+    return 'text-gray-600 dark:text-gray-400'
+  }
+  if (intensity < 5) {
+    return 'text-blue-600 dark:text-blue-400'
+  }
+  if (intensity < 7) {
+    return 'text-amber-600 dark:text-amber-400'
+  }
+  if (intensity >= 7) {
+    return 'text-green-600 dark:text-green-400'
+  }
+  return undefined
 }
