@@ -1,6 +1,8 @@
 import type { LiveScoreResponse, Match, MatchPrediction } from '@/types'
 import { cache } from 'react'
 
+export type { MatchPrediction }
+
 const API_ENDPOINT = 'https://api.betmines.com/betmines/v1/fixtures/livescores'
 
 /**

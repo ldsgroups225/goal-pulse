@@ -2,7 +2,7 @@
 
 import type { MatchPrediction } from '@/types'
 import { usePredictions } from '@/lib/store/use-predictions'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Increase refresh interval from 60s to 2 minutes to reduce API load
 const AUTO_REFRESH_INTERVAL = 120000 // 2 minutes
@@ -29,7 +29,7 @@ export function useLivePredictions() {
   const fetchingRef = useRef<boolean>(false)
 
   // Function to fetch predictions with throttling
-  const fetchPredictions = async () => {
+  const fetchPredictions = useCallback(async () => {
     // Prevent concurrent fetches and throttle requests
     const now = Date.now()
     if (
@@ -68,12 +68,12 @@ export function useLivePredictions() {
       setLoading(false)
       fetchingRef.current = false
     }
-  }
+  }, [isLoading, setLoading, setError, updatePredictions])
 
   // Fetch on initial load
   useEffect(() => {
     fetchPredictions()
-  }, [])
+  }, [fetchPredictions])
 
   // Set up auto-refresh interval with debounce
   useEffect(() => {
@@ -90,7 +90,7 @@ export function useLivePredictions() {
         clearInterval(intervalId)
       }
     }
-  }, [autoRefresh])
+  }, [autoRefresh, fetchPredictions])
 
   // Return everything needed to manage predictions
   return {
