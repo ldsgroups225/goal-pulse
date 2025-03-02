@@ -12,7 +12,7 @@ const API_ENDPOINT = 'https://api.betmines.com/betmines/v1/fixtures/livescores'
 export const fetchLiveScores = cache(async (): Promise<LiveScoreResponse> => {
   try {
     const response = await fetch(API_ENDPOINT, {
-      next: { revalidate: 60 }, // Revalidate every 60 seconds
+      next: { revalidate: 30 }, // Revalidate every 60 seconds
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
