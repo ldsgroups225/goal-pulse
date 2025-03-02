@@ -118,10 +118,13 @@ export function PredictionCard({
 
         {/* Teams & Score */}
         <div className="flex-1 px-3 py-2 flex flex-col justify-between">
-          <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-3">
+          <div className="grid grid-cols-3 items-center gap-2">
             {/* Home Team */}
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 mb-1 relative">
+            <div className="flex flex-row items-center justify-start gap-1">
+              <span className="text-xs leading-tight max-w-[80px] text-left">
+                {data.teams.home.name}
+              </span>
+              <div className="w-8 h-8 relative">
                 <Image
                   src={data.teams.home.logoUrl}
                   alt={data.teams.home.name}
@@ -130,14 +133,11 @@ export function PredictionCard({
                   sizes="32px"
                 />
               </div>
-              <span className="text-xs text-center leading-tight">
-                {data.teams.home.name}
-              </span>
             </div>
 
             {/* Score */}
             <div className="flex flex-col items-center">
-              <div className="mb-0.5 text-sm opacity-70 font-medium">
+              <div className="text-sm opacity-70 font-medium">
                 {isLive || statusText === 'HT' || statusText === 'FT'
                   ? 'Score'
                   : 'Match'}
@@ -158,8 +158,8 @@ export function PredictionCard({
             </div>
 
             {/* Away Team */}
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 mb-1 relative">
+            <div className="flex flex-row-reverse items-center justify-start gap-1">
+              <div className="w-8 h-8 relative">
                 <Image
                   src={data.teams.away.logoUrl}
                   alt={data.teams.away.name}
@@ -168,7 +168,7 @@ export function PredictionCard({
                   sizes="32px"
                 />
               </div>
-              <span className="text-xs text-center leading-tight">
+              <span className="text-xs leading-tight max-w-[80px] text-right">
                 {data.teams.away.name}
               </span>
             </div>
