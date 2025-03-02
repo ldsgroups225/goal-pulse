@@ -62,7 +62,7 @@ export function PredictionCard({
   const hasRedCard = data.stats?.cards?.home?.red > 0 || data.stats?.cards?.away?.red > 0
 
   // Enhanced UI for cards with red cards
-  const redCardHighlight = hasRedCard && isLive ? 'border-red-500 dark:border-red-500' : ''
+  const redCardHighlight = hasRedCard && isLive ? 'border-destructive dark:border-destructive' : ''
 
   return (
     <div
@@ -102,7 +102,7 @@ export function PredictionCard({
 
             {/* Red card indicator */}
             {hasRedCard && (
-              <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 px-1.5 py-0.5 rounded font-medium">
+              <span className="text-xs bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive px-1.5 py-0.5 rounded font-medium">
                 RC
               </span>
             )}
@@ -177,13 +177,13 @@ export function PredictionCard({
           {/* Match stats */}
           {data.stats && (
             <div className="grid grid-cols-3 items-center text-xs text-center gap-2 mt-3">
-              <div>
+              <div className="text-start">
                 Poss:
                 {' '}
                 {data.stats.possession.home}
                 %
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center text-center">
                 <span>
                   Shots:
                   {data.stats.shots.home.total}
@@ -198,7 +198,7 @@ export function PredictionCard({
                   {data.stats.corners.away}
                 </span>
               </div>
-              <div>
+              <div className="text-end">
                 Poss:
                 {' '}
                 {data.stats.possession.away}
@@ -216,16 +216,12 @@ export function PredictionCard({
               className={cn(
                 'flex flex-col items-center justify-center py-2 px-1',
                 first15Prob && first15Prob > 30
-                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                  : 'bg-primary/5 dark:bg-primary/10',
+                  ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary'
+                  : 'bg-muted text-muted-foreground',
               )}
             >
               <div className="text-xs opacity-80 mb-0.5">Home Next</div>
-              <div className={cn(
-                'text-xl font-bold',
-                first15Prob && first15Prob > 30 ? 'text-blue-600 dark:text-blue-400' : 'text-primary dark:text-primary-foreground',
-              )}
-              >
+              <div className="text-xl font-bold">
                 {Math.round(data.prediction.winProbability.home * 100)}
                 %
               </div>
@@ -246,16 +242,12 @@ export function PredictionCard({
               className={cn(
                 'flex flex-col items-center justify-center py-2 px-1',
                 final10Prob && final10Prob > 30
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                  : 'bg-primary/5 dark:bg-primary/10',
+                  ? 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
+                  : 'bg-muted text-muted-foreground',
               )}
             >
               <div className="text-xs opacity-80 mb-0.5">Away Next</div>
-              <div className={cn(
-                'text-xl font-bold',
-                final10Prob && final10Prob > 30 ? 'text-amber-600 dark:text-amber-400' : 'text-primary dark:text-primary-foreground',
-              )}
-              >
+              <div className="text-xl font-bold">
                 {Math.round(data.prediction.winProbability.away * 100)}
                 %
               </div>
@@ -286,10 +278,10 @@ export function PredictionCard({
             'px-3 py-1.5 text-sm font-medium',
             'border-t border-border/60 backdrop-blur-sm',
             highlightEarlyGoal
-              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+              ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary'
               : highlightLateGoal
-                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+                ? 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
+                : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground',
           )}
           >
             <span className="flex items-center justify-center gap-1">
@@ -553,7 +545,7 @@ function getEventImpact(event: MatchEvent): number {
 // Helper to determine the color for the next scorer bet box
 function getNextScorerBetColor(data: MatchPrediction): string {
   // Default color for ProPredict
-  let betBoxColor = 'bg-card/60 text-card-foreground dark:bg-card/40 dark:text-card-foreground'
+  let betBoxColor = 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary'
 
   const confidence = data.prediction.confidence
 
@@ -564,22 +556,22 @@ function getNextScorerBetColor(data: MatchPrediction): string {
     const isAwayTeamLikely = isAwayTeamLikelyToScoreNext(data)
 
     if (isHomeTeamLikely) {
-      // More vibrant yellow for home team
-      betBoxColor = 'bg-yellow-200 text-yellow-900 dark:bg-yellow-800/50 dark:text-yellow-200'
+      // More vibrant for home team
+      betBoxColor = 'bg-score-home/20 text-score-home dark:bg-score-home/30 dark:text-score-home'
     }
     else if (isAwayTeamLikely) {
-      // More vibrant blue for away team
-      betBoxColor = 'bg-blue-200 text-blue-900 dark:bg-blue-800/50 dark:text-blue-200'
+      // More vibrant for away team
+      betBoxColor = 'bg-score-away/20 text-score-away dark:bg-score-away/30 dark:text-score-away'
     }
     else {
       // For high confidence but unclear which team, use a vibrant green
       const goalProb = data.prediction.goals?.over15 || 0
       if (goalProb > 0.65) {
-        betBoxColor = 'bg-green-200 text-green-900 dark:bg-green-800/50 dark:text-green-200'
+        betBoxColor = 'bg-soccer-green/20 text-soccer-green dark:bg-soccer-green/30 dark:text-soccer-green'
       }
       else {
-        // For high confidence general predictions - purple gradient
-        betBoxColor = 'bg-gradient-to-r from-indigo-200 to-purple-200 text-purple-900 dark:from-indigo-900/50 dark:to-purple-900/50 dark:text-purple-200'
+        // For high confidence general predictions
+        betBoxColor = 'bg-accent/20 text-accent-foreground dark:bg-accent/30 dark:text-accent-foreground'
       }
     }
   }
@@ -587,10 +579,10 @@ function getNextScorerBetColor(data: MatchPrediction): string {
     // Medium confidence - more muted colors but still clear
     const goalProb = data.prediction.goals?.over15 || 0
     if (goalProb > 0.65) {
-      betBoxColor = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+      betBoxColor = 'bg-soccer-green/10 text-soccer-green/90 dark:bg-soccer-green/20 dark:text-soccer-green/90'
     }
     else {
-      betBoxColor = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
+      betBoxColor = 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary'
     }
   }
 

@@ -17,22 +17,22 @@ export function formatOdds(value: number): { value: string, color: string } {
   const formattedValue = value.toFixed(2)
 
   // Determine the color based on odds value
-  let color = 'text-gray-700'
+  let color = 'text-card-foreground'
 
   if (value < 1.5) {
-    color = 'text-red-600' // Very low odds = high probability
+    color = 'text-destructive' // Very low odds = high probability
   }
   else if (value < 2.0) {
-    color = 'text-orange-600' // Low odds
+    color = 'text-destructive/80' // Low odds
   }
   else if (value < 3.0) {
-    color = 'text-amber-600' // Medium odds
+    color = 'text-accent-foreground' // Medium odds
   }
   else if (value < 5.0) {
-    color = 'text-green-600' // High odds
+    color = 'text-soccer-green' // High odds
   }
   else {
-    color = 'text-blue-600' // Very high odds = low probability
+    color = 'text-primary' // Very high odds = low probability
   }
 
   return { value: formattedValue, color }
@@ -46,22 +46,22 @@ export function formatConfidence(value: number): { value: string, color: string 
   const percentage = Math.round(value * 100)
 
   // Determine the color based on confidence level
-  let color = 'text-gray-700'
+  let color = 'text-card-foreground'
 
   if (percentage >= 80) {
-    color = 'text-green-600' // Very high confidence
+    color = 'text-soccer-green' // Very high confidence
   }
   else if (percentage >= 65) {
-    color = 'text-emerald-600' // High confidence
+    color = 'text-soccer-green/80' // High confidence
   }
   else if (percentage >= 50) {
-    color = 'text-amber-600' // Medium confidence
+    color = 'text-accent-foreground' // Medium confidence
   }
   else if (percentage >= 35) {
-    color = 'text-orange-600' // Low confidence
+    color = 'text-destructive/80' // Low confidence
   }
   else {
-    color = 'text-red-600' // Very low confidence
+    color = 'text-destructive' // Very low confidence
   }
 
   return { value: `${percentage}%`, color }
@@ -71,8 +71,8 @@ export function formatConfidence(value: number): { value: string, color: string 
  * Format score with appropriate color based on goals
  */
 export function formatScore(homeScore: number, awayScore: number): { homeColor: string, awayColor: string } {
-  const homeColor = homeScore > awayScore ? 'text-green-600' : homeScore < awayScore ? 'text-gray-600' : 'text-gray-800'
-  const awayColor = awayScore > homeScore ? 'text-green-600' : awayScore < homeScore ? 'text-gray-600' : 'text-gray-800'
+  const homeColor = homeScore > awayScore ? 'text-score-home' : homeScore < awayScore ? 'text-muted-foreground' : 'text-score-draw'
+  const awayColor = awayScore > homeScore ? 'text-score-away' : awayScore < homeScore ? 'text-muted-foreground' : 'text-score-draw'
 
   return { homeColor, awayColor }
 }

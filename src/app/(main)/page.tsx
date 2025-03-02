@@ -27,32 +27,32 @@ export default async function Home() {
           {/* Live indicator */}
           <div className="flex items-center space-x-2">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 dark:bg-red-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 dark:bg-red-400"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 dark:bg-destructive"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive dark:bg-destructive"></span>
             </span>
             <span className="text-sm font-medium text-foreground/80">Live now</span>
           </div>
 
           {/* Match stats summary */}
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <div className="px-2 py-0.5 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 rounded-md">
+            <div className="px-2 py-0.5 bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive rounded-md">
               Live:
               {' '}
               {liveMatches}
             </div>
             {redCardMatches > 0 && (
-              <div className="px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 rounded-md">
+              <div className="px-2 py-0.5 bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground rounded-md">
                 Red Cards:
                 {' '}
                 {redCardMatches}
               </div>
             )}
-            <div className="px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-md">
+            <div className="px-2 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded-md">
               Upcoming:
               {' '}
               {upcomingMatches}
             </div>
-            <div className="px-2 py-0.5 bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 rounded-md">
+            <div className="px-2 py-0.5 bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground rounded-md">
               Completed:
               {' '}
               {completedMatches}

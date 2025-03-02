@@ -137,7 +137,7 @@ export function PredictionList({ initialData }: { initialData: MatchPrediction[]
           onClick={handleSearchBarClick}
         >
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg className={`w-4 h-4 ${isFocused ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+            <svg className={`w-4 h-4 ${isFocused ? 'text-primary dark:text-primary' : 'text-muted-foreground dark:text-muted-foreground'}`} aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
               <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
             </svg>
           </div>
@@ -145,7 +145,7 @@ export function PredictionList({ initialData }: { initialData: MatchPrediction[]
           <input
             ref={searchInputRef}
             type="search"
-            className={`block w-full p-2 pl-10 pr-10 text-sm text-gray-900 border-0 bg-gray-50 focus:ring-0 focus:outline-none dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white ${styles.scrollbarHide}`}
+            className={`block w-full p-2 pl-10 pr-10 text-sm text-foreground border-0 bg-muted focus:ring-0 focus:outline-none dark:bg-muted dark:placeholder-muted-foreground dark:text-foreground ${styles.scrollbarHide}`}
             placeholder={isScrolled ? 'Search...' : 'Search by team, league, or country'}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -157,7 +157,7 @@ export function PredictionList({ initialData }: { initialData: MatchPrediction[]
           {searchTerm && (
             <button
               type="button"
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground"
               onClick={handleClearSearch}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -169,7 +169,7 @@ export function PredictionList({ initialData }: { initialData: MatchPrediction[]
 
         {/* Search info - show number of matches when search is active */}
         {searchTerm && (
-          <div className={`mt-1 text-xs text-right pr-1 text-gray-500 dark:text-gray-400 ${styles.searchInfo}`}>
+          <div className={`mt-1 text-xs text-right pr-1 text-muted-foreground dark:text-muted-foreground ${styles.searchInfo}`}>
             {filteredMatches.length}
             {' '}
             {filteredMatches.length === 1 ? 'match' : 'matches'}
@@ -193,7 +193,7 @@ export function PredictionList({ initialData }: { initialData: MatchPrediction[]
               </div>
             )
           : (
-              <div className="py-12 text-center bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+              <div className="py-12 text-center bg-muted dark:bg-muted/50 rounded-xl">
                 {debouncedSearchTerm
                   ? (
                       <p className="text-foreground/70">

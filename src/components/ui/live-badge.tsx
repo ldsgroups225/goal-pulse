@@ -26,8 +26,8 @@ export function LiveBadge({
         className,
       )}
       >
-        <span className="text-amber-500 dark:text-amber-400 flex items-center">
-          <span className="inline-block w-1.5 h-1.5 bg-amber-500 dark:bg-amber-400 rounded-full mr-1.5"></span>
+        <span className="text-accent flex items-center">
+          <span className="inline-block w-1.5 h-1.5 bg-accent rounded-full mr-1.5"></span>
           HT
         </span>
       </div>
@@ -55,10 +55,10 @@ export function LiveBadge({
       )}
       >
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 dark:bg-red-500 dark:opacity-60"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 dark:bg-red-400"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 dark:bg-destructive dark:opacity-60"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive dark:bg-destructive"></span>
         </span>
-        <span className="text-red-600 dark:text-red-400">
+        <span className="text-destructive dark:text-destructive">
           {minute}
           &apos;
         </span>
@@ -77,7 +77,7 @@ export function LiveBadge({
     const timeFormatted = formatStartTime(startTime)
     return (
       <div className={cn(
-        'flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400',
+        'flex items-center gap-1 text-xs font-medium text-primary dark:text-primary',
         className,
       )}
       >

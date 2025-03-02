@@ -303,55 +303,55 @@ function StatBadge({ label, value, suffix = '', color }: StatBadgeProps) {
 // Helper functions
 function getTextColor(probability: number): string {
   if (probability < 30) {
-    return 'text-gray-600 dark:text-gray-400'
+    return 'text-muted-foreground'
   }
   if (probability < 50) {
-    return 'text-blue-600 dark:text-blue-400'
+    return 'text-primary'
   }
   if (probability < 70) {
-    return 'text-amber-600 dark:text-amber-400'
+    return 'text-accent-foreground'
   }
-  return 'text-green-600 dark:text-green-400'
+  return 'text-soccer-green'
 }
 
 function getBarColor(probability: number): string {
   if (probability < 0.3) {
-    return 'bg-gray-400 dark:bg-gray-500'
+    return 'bg-muted-foreground'
   }
   if (probability < 0.5) {
-    return 'bg-blue-500 dark:bg-blue-500/80'
+    return 'bg-primary dark:bg-primary/80'
   }
   if (probability < 0.7) {
-    return 'bg-amber-500 dark:bg-amber-500/80'
+    return 'bg-accent dark:bg-accent/80'
   }
-  return 'bg-green-500 dark:bg-green-500/80'
+  return 'bg-soccer-green dark:bg-soccer-green/80'
 }
 
 function getHotspotColor(probability: number): string {
   if (probability < 0.3) {
-    return 'bg-gray-400/70 dark:bg-gray-500/60'
+    return 'bg-muted-foreground/70 dark:bg-muted-foreground/60'
   }
   if (probability < 0.5) {
-    return 'bg-blue-400/70 dark:bg-blue-500/60'
+    return 'bg-primary/70 dark:bg-primary/60'
   }
   if (probability < 0.7) {
-    return 'bg-amber-400/70 dark:bg-amber-500/60'
+    return 'bg-accent/70 dark:bg-accent/60'
   }
-  return 'bg-green-400/70 dark:bg-green-500/60'
+  return 'bg-soccer-green/70 dark:bg-soccer-green/60'
 }
 
 function getIntensityColor(intensity: number): string | undefined {
   if (intensity < 3) {
-    return 'text-gray-600 dark:text-gray-400'
+    return 'text-muted-foreground'
   }
   if (intensity < 5) {
-    return 'text-blue-600 dark:text-blue-400'
+    return 'text-primary'
   }
   if (intensity < 7) {
-    return 'text-amber-600 dark:text-amber-400'
+    return 'text-accent-foreground'
   }
   if (intensity >= 7) {
-    return 'text-green-600 dark:text-green-400'
+    return 'text-soccer-green'
   }
   return undefined
 }

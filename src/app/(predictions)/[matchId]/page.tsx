@@ -228,9 +228,9 @@ export default async function MatchPredictionPage({
           <div className="h-2 bg-muted dark:bg-muted/50 rounded-full overflow-hidden">
             <div
               className={cn('h-full', {
-                'bg-red-500 dark:bg-red-500/80': prediction.prediction.confidence < 0.4,
-                'bg-amber-500 dark:bg-amber-500/80': prediction.prediction.confidence >= 0.4 && prediction.prediction.confidence < 0.7,
-                'bg-green-500 dark:bg-green-500/80': prediction.prediction.confidence >= 0.7,
+                'bg-destructive dark:bg-destructive/80': prediction.prediction.confidence < 0.4,
+                'bg-accent dark:bg-accent/80': prediction.prediction.confidence >= 0.4 && prediction.prediction.confidence < 0.7,
+                'bg-soccer-green dark:bg-soccer-green/80': prediction.prediction.confidence >= 0.7,
               })}
               style={{ width: `${Math.round(prediction.prediction.confidence * 100)}%` }}
             />
@@ -308,9 +308,9 @@ function GoalPredictionCard({ title, probability }: GoalPredictionCardProps) {
         </div>
         <div
           className={cn('text-xs px-1.5 py-0.5 rounded', {
-            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': probability < 50,
-            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': probability >= 50 && probability < 70,
-            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': probability >= 70,
+            'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive': probability < 50,
+            'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground': probability >= 50 && probability < 70,
+            'bg-soccer-green/10 text-soccer-green dark:bg-soccer-green/20 dark:text-soccer-green': probability >= 70,
           })}
         >
           {probability < 50 ? 'Low' : probability < 70 ? 'Medium' : 'High'}

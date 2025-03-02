@@ -21,7 +21,7 @@ export default function OfflinePage() {
         <div className="w-full max-w-md text-center space-y-6">
           <div className="mb-8">
             <svg
-              className="w-16 h-16 mx-auto text-gray-400"
+              className="w-16 h-16 mx-auto text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -38,13 +38,13 @@ export default function OfflinePage() {
 
           <h1 className="text-2xl font-bold">You're offline</h1>
 
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Please check your internet connection and try again
           </p>
 
           {lastUpdate && (
-            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-              <p className="text-sm text-gray-500">
+            <div className="mt-8 p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
                 Last data update:
                 {' '}
                 {lastUpdate}
