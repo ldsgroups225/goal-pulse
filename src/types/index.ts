@@ -7,7 +7,7 @@ export interface MatchEvent {
   reason?: string
   result?: string
   teamId: string
-  type: 'goal' | 'yellowcard' | 'redcard' | 'substitution' | 'freekick' | 'offside' | 'var'
+  type: 'goal' | 'yellowcard' | 'redcard' | 'substitution' | 'freekick' | 'offside' | 'var' | 'shot' | 'corner'
   extraMinute?: number
   isDangerous?: boolean
   x?: number
@@ -285,6 +285,7 @@ export interface WindowAnalysis {
   setPieceCount: number
   goalIntensity: number
   patternStrength: number
+  effectiveProbability?: number
 }
 
 export interface TemporalStats {

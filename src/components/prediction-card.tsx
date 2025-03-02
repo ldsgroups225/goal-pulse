@@ -1,9 +1,13 @@
-import type { MatchPrediction } from '@/types'
+import type { Match, MatchEvent, MatchPrediction, WindowAnalysis } from '@/types'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { LiveBadge } from '@/components/ui/live-badge'
 import { cn, formatScore } from '@/lib/utils'
 import Image from 'next/image'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+// Constants
+const MAX_REGULATION_TIME = 90
+const CRITICAL_WINDOWS = ['First 15', 'Final 10']
 
 interface PredictionCardProps {
   data: MatchPrediction
@@ -18,6 +22,8 @@ export function PredictionCard({
   showPrediction = true,
   className,
 }: PredictionCardProps) {
+  const router = useRouter()
+
   const isCompact = variant === 'compact'
   const { homeColor, awayColor } = formatScore(data.teams.home.score, data.teams.away.score)
 
@@ -70,7 +76,11 @@ export function PredictionCard({
         className,
       )}
     >
-      <Link href={`/${data.fixtureId}`} className="flex-1 flex flex-col h-full">
+      <button
+        type="button"
+        onDoubleClick={() => router.push(`/${data.fixtureId}`)}
+        className="flex-1 flex flex-col h-full"
+      >
         {/* Card Header - League & Status */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border/60 bg-card/80 dark:bg-card/60">
           <div className="flex items-center gap-1.5">
@@ -320,238 +330,223 @@ export function PredictionCard({
             </span>
           </div>
         )}
-      </Link>
+      </button>
     </div>
   )
 }
 
 // Helper to get high confidence tip text
 function getHighConfidenceTip(data: MatchPrediction): string {
-  // Extract match state data
-  const { status, prediction, temporalGoalProbability, stats } = data
-  const confidence = prediction.confidence
-  const isLive = status.isLive
+  const { status, /* prediction, */ temporalGoalProbability, stats } = data
+  const currentMinute = status.minute
+  const remainingTime = Math.max(MAX_REGULATION_TIME - currentMinute, 0)
 
-  // Calculate remaining time (important for prediction weighting)
-  const remainingMinutes = isLive ? Math.max(90 - status.minute, 0) : 90
-  const matchPhase = remainingMinutes >= 75 ? 'early' : remainingMinutes >= 45 ? 'mid' : remainingMinutes >= 15 ? 'late' : 'final'
-
-  // Time-weighted confidence modifier (predictions become more accurate as match progresses)
-  const timeConfidenceMultiplier = isLive ? Math.min(1.15, 1 + ((90 - remainingMinutes) / 200)) : 1
-  const adjustedConfidence = Math.min(0.98, confidence * timeConfidenceMultiplier)
-
-  // Get current score difference and calculate comeback likelihood
-  const scoreDifference = data.teams.home.score - data.teams.away.score
-  const homeLeading = scoreDifference > 0
-  const awayLeading = scoreDifference < 0
-  const leadMagnitude = Math.abs(scoreDifference)
-
-  // Calculate urgency factor based on score difference and time
-  const urgencyFactor = (leadMagnitude / (remainingMinutes + 10)) * 10
-
-  // Create advanced scoring likelihood model
-  function calculateScoringLikelihood(teamType: 'home' | 'away'): number {
-    const isHome = teamType === 'home'
-    const opposingTeam = isHome ? 'away' : 'home'
-
-    // Base stats
-    const possession = stats?.possession[teamType] || 50
-    const shotsOnTarget = stats?.shots[teamType]?.onTarget || 0
-    const shotsTotal = stats?.shots[teamType]?.total || 0
-    const dangerousAttacks = stats?.attacks[teamType]?.dangerous || 0
-    const opposingRedCards = stats?.cards[opposingTeam]?.red || 0
-
-    // Advanced stats when available
-    let pressureIntensity = 0
-    let transitionSpeed = 0
-    let defensiveActions = 0
-    let setPieceEfficiency = 0
-    let attackMomentum = 0
-
-    if (temporalGoalProbability?.teamComparison) {
-      const teamStats = temporalGoalProbability.teamComparison[teamType]
-      pressureIntensity = teamStats?.pressureIntensity || 0
-      transitionSpeed = teamStats?.transitionSpeed || 0
-      defensiveActions = teamStats?.defensiveActions || 0
-      setPieceEfficiency = teamStats?.setPieceEfficiency || 0
-
-      if (temporalGoalProbability.momentumAnalysis) {
-        attackMomentum = isHome
-          ? temporalGoalProbability.momentumAnalysis.attackMomentum
-          : 1 - temporalGoalProbability.momentumAnalysis.attackMomentum
-      }
+  // If temporal data is missing, generate it using the temporal analysis
+  let windows = temporalGoalProbability?.windows
+  if (!windows || windows.length === 0) {
+    // Create a simplified Match object with just the properties we need
+    const matchData = {
+      events: { data: [] as MatchEvent[] }, // Empty events array as fallback
+      ...data,
     }
-
-    // Calculate fatigue factor
-    const fatigueFactor = remainingMinutes < 30 ? 0.9 - (remainingMinutes / 100) : 1
-
-    // Urgency multiplier based on score and time
-    const urgencyMultiplier = isHome
-      ? (homeLeading ? 0.85 : awayLeading ? 1.2 : 1) * (1 + urgencyFactor / 10)
-      : (awayLeading ? 0.85 : homeLeading ? 1.2 : 1) * (1 + urgencyFactor / 10)
-
-    // Time-based factors (teams often score at specific times)
-    const timePatternFactor = (matchPhase === 'early' && remainingMinutes > 85)
-      ? 1.1 // Early goals
-      : (matchPhase === 'mid' && Math.abs(remainingMinutes - 45) < 5)
-          ? 1.15 // End of halves
-          : (matchPhase === 'late')
-              ? 1.2 // Last 15 mins
-              : (matchPhase === 'final' && remainingMinutes < 5)
-                  ? 1.3 // Final minutes
-                  : 1
-
-    // Calculate raw scoring likelihood
-    const rawLikelihood = (possession / 100 * 0.2)
-      + (shotsOnTarget * 0.3)
-      + (shotsTotal * 0.1)
-      + (dangerousAttacks * 0.008)
-      + (pressureIntensity * 0.15)
-      + (transitionSpeed * 0.12)
-      + (setPieceEfficiency * 0.1)
-      + (attackMomentum * 0.25)
-      + (opposingRedCards * 0.5)
-      - (defensiveActions * 0.05)
-
-    // Apply modifiers
-    return rawLikelihood * urgencyMultiplier * timePatternFactor * fatigueFactor
+    windows = analyzeTemporalPatterns(matchData as unknown as Match)
   }
 
-  // Get highest probability windows if available
-  const highProbabilityWindows: Array<{ team: 'home' | 'away', windowStart: number, probability: number }> = []
+  // Temporal decay model with phase awareness
+  const phaseWeights = calculatePhaseWeights(currentMinute)
+  const timeDecayFactor = 1 - currentMinute / MAX_REGULATION_TIME ** 1.5
 
-  if (temporalGoalProbability?.windows && isLive) {
-    // Find windows that include current match time
-    const relevantWindows = temporalGoalProbability.windows.filter(w =>
-      (w.window.start <= status.minute && w.window.end >= status.minute),
+  // Fatigue model using exponential decay
+  const fatigueImpact = calculateFatigueImpact(currentMinute)
+
+  // Score difference dynamics
+  const scoreDiff = data.teams.home.score - data.teams.away.score
+  const goalUrgency = calculateGoalUrgency(scoreDiff, remainingTime)
+
+  // Active window analysis
+  const activeWindows = analyzeActiveWindows(windows, currentMinute)
+
+  // Combined predictive model
+  const predictiveScore = calculatePredictiveScore({
+    baseStats: stats,
+    activeWindows,
+    phaseWeights,
+    timeDecay: timeDecayFactor,
+    fatigueImpact,
+    goalUrgency,
+  })
+
+  // Check if there are recent events to adjust the prediction
+  const matchEvents = (data as any).events?.data
+  if (matchEvents && Array.isArray(matchEvents) && matchEvents.length > 0) {
+    // Get the last few events to check for recent changes
+    const recentEvents = matchEvents.slice(-3)
+    // Create a copy of the prediction to adjust
+    const adjustedPrediction = adjustPrediction(data, recentEvents)
+
+    // If the adjustment significantly changed the prediction, reflect that in the message
+    if (adjustedPrediction.temporalGoalProbability?.windows !== windows) {
+      return generatePredictionMessage(
+        predictiveScore * 1.1, // Increase the score slightly for recent events
+        adjustedPrediction.temporalGoalProbability?.windows || activeWindows,
+        currentMinute,
+      )
+    }
+  }
+
+  return generatePredictionMessage(predictiveScore, activeWindows, currentMinute)
+}
+
+// Helper functions
+interface PredictiveParams {
+  baseStats: MatchPrediction['stats']
+  activeWindows: WindowAnalysis[]
+  phaseWeights: Record<string, number>
+  timeDecay: number
+  fatigueImpact: number
+  goalUrgency: number
+}
+
+function calculatePredictiveScore(params: PredictiveParams): number {
+  const { baseStats, activeWindows, phaseWeights, timeDecay, fatigueImpact, goalUrgency } = params
+
+  // Base statistics component
+  const baseScore = 0.3 * (
+    (baseStats.shots.home.onTarget + baseStats.shots.away.onTarget)
+    + 0.5 * (baseStats.attacks.home.dangerous + baseStats.attacks.away.dangerous)
+  )
+
+  // Temporal window component
+  const windowScore = activeWindows.reduce((sum, window) => {
+    const windowWeight = CRITICAL_WINDOWS.includes(window.window.label) ? 1.2 : 1
+    return sum + (window.probability * windowWeight * phaseWeights[window.window.label])
+  }, 0)
+
+  // Environmental factors
+  const environmentScore = 0.4 * timeDecay * fatigueImpact * goalUrgency
+
+  return (baseScore + windowScore + environmentScore) / 2.5
+}
+
+function calculatePhaseWeights(currentMinute: number): Record<string, number> {
+  return {
+    'First 15': Math.max(0, 1 - (currentMinute / 15)),
+    'Final 10': currentMinute >= 80 ? 1 : Math.min(1, (currentMinute - 70) / 10),
+    'default': 1 - (currentMinute / MAX_REGULATION_TIME) ** 2,
+  }
+}
+
+function calculateFatigueImpact(currentMinute: number): number {
+  return 0.7 + 0.3 * Math.exp(-currentMinute / 100)
+}
+
+function calculateGoalUrgency(scoreDiff: number, remainingTime: number): number {
+  const absDiff = Math.abs(scoreDiff)
+  return remainingTime > 0
+    ? (1 / (absDiff + 1)) * (remainingTime / MAX_REGULATION_TIME)
+    : 1
+}
+
+function analyzeActiveWindows(windows: WindowAnalysis[] = [], currentMinute: number): WindowAnalysis[] {
+  return windows
+    .filter(w => w.window.end >= currentMinute)
+    .map(w => ({
+      ...w,
+      effectiveProbability: w.probability
+        * Math.exp(-(currentMinute - w.window.start) / 10),
+    }))
+    .sort((a, b) => (b.effectiveProbability || b.probability) - (a.effectiveProbability || a.probability))
+}
+
+function generatePredictionMessage(
+  score: number,
+  windows: WindowAnalysis[],
+  currentMinute: number,
+): string {
+  const criticalWindow = windows.find(w =>
+    CRITICAL_WINDOWS.includes(w.window.label)
+    && (w.effectiveProbability || w.probability) > 0.4,
+  )
+
+  if (criticalWindow) {
+    const timeLeft = criticalWindow.window.end - currentMinute
+    return `${Math.round(score * 100)}% chance of goal in next ${timeLeft} mins (${criticalWindow.window.label})`
+  }
+
+  const bestWindow = windows[0]
+  if (bestWindow && (bestWindow.effectiveProbability || bestWindow.probability) > 0.35) {
+    return `${Math.round(score * 100)}% goal potential in ${bestWindow.window.label}`
+  }
+
+  return currentMinute > 75
+    ? 'Late game - monitor key players'
+    : 'Developing match situation'
+}
+
+// Real-time prediction adjustment
+function adjustPrediction(
+  prediction: MatchPrediction,
+  newEvents: MatchEvent[],
+): MatchPrediction {
+  if (!prediction.temporalGoalProbability?.windows) {
+    return prediction
+  }
+
+  const updatedWindows = prediction.temporalGoalProbability.windows.map((w) => {
+    const recentEvents = newEvents.filter(e =>
+      e.minute >= w.window.start
+      && e.minute <= w.window.end,
     )
 
-    if (relevantWindows.length > 0) {
-      // Determine which team is more likely to score in these windows
-      const homeAttackMomentum = temporalGoalProbability.momentumAnalysis?.attackMomentum || 0.5
-      relevantWindows.forEach((window) => {
-        const homeProb = window.probability * homeAttackMomentum
-        const awayProb = window.probability * (1 - homeAttackMomentum)
-
-        if (homeProb > 0.3) {
-          highProbabilityWindows.push({
-            team: 'home',
-            windowStart: window.window.start,
-            probability: homeProb,
-          })
-        }
-
-        if (awayProb > 0.3) {
-          highProbabilityWindows.push({
-            team: 'away',
-            windowStart: window.window.start,
-            probability: awayProb,
-          })
-        }
-      })
-
-      // Sort by probability
-      highProbabilityWindows.sort((a, b) => b.probability - a.probability)
+    return {
+      ...w,
+      probability: Math.min(1, w.probability
+      + recentEvents.reduce((sum, e) => sum + getEventImpact(e), 0)),
     }
+  })
+
+  // Create required structure for temporalGoalProbability including all required fields
+  return {
+    ...prediction,
+    temporalGoalProbability: {
+      windows: updatedWindows,
+      keyMoments: prediction.temporalGoalProbability.keyMoments || {
+        preWindowGoals: [],
+        pressureBuildUp: [],
+        defensiveErrors: [],
+      },
+      teamComparison: prediction.temporalGoalProbability.teamComparison || {
+        home: {
+          pressureIntensity: 0,
+          defensiveActions: 0,
+          transitionSpeed: 0,
+          setPieceEfficiency: 0,
+        },
+        away: {
+          pressureIntensity: 0,
+          defensiveActions: 0,
+          transitionSpeed: 0,
+          setPieceEfficiency: 0,
+        },
+      },
+      momentumAnalysis: prediction.temporalGoalProbability.momentumAnalysis || {
+        attackMomentum: 0.5,
+        defenseStability: 0.5,
+        fatigueIndex: 0,
+      },
+      lastUpdated: new Date().toISOString(),
+    },
   }
+}
 
-  // Calculate team scoring likelihoods
-  const homeLikelihood = calculateScoringLikelihood('home')
-  const awayLikelihood = calculateScoringLikelihood('away')
-  const likelihoodRatio = homeLikelihood / Math.max(0.1, awayLikelihood)
-  const percentageConfidence = Math.round(adjustedConfidence * 100)
-
-  // Very high confidence predictions with extensive data and time context
-  if (adjustedConfidence >= 0.88) {
-    // If we have high probability windows in the current time, use them for very precise predictions
-    if (highProbabilityWindows.length > 0 && highProbabilityWindows[0].probability > 0.6) {
-      const topWindow = highProbabilityWindows[0]
-      const team = data.teams[topWindow.team].name
-      const windowEnd = Math.min(status.minute + 10, 90)
-
-      return `ProPredict: ${team} to score between ${status.minute}'-${windowEnd}' (${percentageConfidence}%)`
-    }
-
-    // Use advanced team comparison from calculated likelihoods
-    if (likelihoodRatio > 1.8) {
-      return `ProPredict: ${data.teams.home.name} will score next (${percentageConfidence}%)`
-    }
-    else if (likelihoodRatio < 0.55) {
-      return `ProPredict: ${data.teams.away.name} will score next (${percentageConfidence}%)`
-    }
-
-    // Determine if we expect goals based on match state
-    const overUnderThreshold = matchPhase === 'late' ? 0.7 : 0.75
-    if (prediction.goals?.over15 > overUnderThreshold) {
-      if (remainingMinutes < 15) {
-        return `ProPredict: Goal imminent (${percentageConfidence}%)`
-      }
-      return `ProPredict: Goal expected soon (${percentageConfidence}%)`
-    }
-
-    // Add a default return for the high confidence block
-    return `ProPredict: High confidence prediction (${percentageConfidence}%)`
-  }
-  else if (adjustedConfidence >= 0.78) {
-    // Different message based on match phase
-    if (matchPhase === 'early') {
-      const likelyTeam = likelihoodRatio > 1.5
-        ? data.teams.home.name
-        : likelihoodRatio < 0.67 ? data.teams.away.name : null
-
-      if (likelyTeam) {
-        return `ProPredict: ${likelyTeam} creating early chances (${percentageConfidence}%)`
-      }
-      return `ProPredict: Early goal opportunity (${percentageConfidence}%)`
-    }
-
-    if (matchPhase === 'mid') {
-      const goalProb = data.prediction.goals?.over15 || 0
-      if (goalProb > 0.7) {
-        return `ProPredict: Goal before halftime (${Math.round(goalProb * 100)}%)`
-      }
-      return `ProPredict: Mid-match analysis inconclusive (${percentageConfidence}%)`
-    }
-
-    if (matchPhase === 'late' || matchPhase === 'final') {
-      if (scoreDifference !== 0) {
-        const leadingTeam = homeLeading ? data.teams.home.name : data.teams.away.name
-        const trailingTeam = homeLeading ? data.teams.away.name : data.teams.home.name
-        const trailingLikelihood = homeLeading ? awayLikelihood : homeLikelihood
-
-        if (trailingLikelihood > 0.6 && urgencyFactor > 1) {
-          return `ProPredict: ${trailingTeam} pushing for equalizer (${percentageConfidence}%)`
-        }
-        return `ProPredict: ${leadingTeam} likely to hold lead (${percentageConfidence}%)`
-      }
-      else {
-        return `ProPredict: Match finely balanced (${percentageConfidence}%)`
-      }
-    }
-
-    // Default high confidence message
-    return `ProPredict: Goal opportunity building (${percentageConfidence}%)`
-  }
-  else if (adjustedConfidence >= 0.65) {
-    const goalProb = data.prediction.goals?.over15 || 0
-    const bttsProb = prediction.goals?.btts || 0
-
-    if (scoreDifference === 0 && bttsProb > 0.7 && remainingMinutes > 30) {
-      return `ProPredict: Both teams to score (${Math.round(bttsProb * 100)}%)`
-    }
-
-    if (goalProb > 0.65) {
-      if (matchPhase === 'late' || matchPhase === 'final') {
-        return `ProPredict: Late goal expected (${Math.round(goalProb * 100)}%)`
-      }
-      return `ProPredict: Goal likely (${Math.round(goalProb * 100)}%)`
-    }
-
-    return `ProPredict: Analyzing match patterns (${percentageConfidence}%)`
-  }
-  else {
-    // Low confidence or insufficient data
-    return `ProPredict: Analyzing match data...`
+function getEventImpact(event: MatchEvent): number {
+  switch (event.type) {
+    case 'goal': return 0.15
+    case 'shot': return event.isDangerous ? 0.08 : 0.03
+    case 'corner': return 0.05
+    case 'freekick': return 0.04
+    case 'redcard': return -0.1
+    default: return 0
   }
 }
 
@@ -682,4 +677,104 @@ function isAwayTeamLikelyToScoreNext(data: MatchPrediction): boolean {
 
   // Fall back to win probability
   return awayWinProb > homeWinProb * 1.5
+}
+
+// Temporal analysis enhancement
+function analyzeTemporalPatterns(match: Match): WindowAnalysis[] {
+  const events = match.events.data
+  return CRITICAL_WINDOWS.map((windowLabel) => {
+    // Create a window object structure matching the expected format
+    const window = {
+      start: windowLabel === 'First 15' ? 0 : 80,
+      end: windowLabel === 'First 15' ? 15 : 90,
+      label: windowLabel,
+    }
+
+    const windowEvents = events.filter(e =>
+      e.minute >= window.start && e.minute <= window.end,
+    )
+
+    return {
+      window,
+      probability: calculateWindowProbability(windowEvents),
+      keyFactors: identifyKeyFactors(windowEvents),
+      pressureIndex: calculatePressureIndex(windowEvents),
+      dangerRatio: calculateDangerRatio(windowEvents),
+      shotFrequency: calculateShotFrequency(windowEvents),
+      setPieceCount: countSetPieces(windowEvents),
+      goalIntensity: calculateGoalIntensity(windowEvents),
+      patternStrength: detectPatterns(windowEvents),
+    }
+  })
+}
+
+function calculateWindowProbability(events: MatchEvent[]): number {
+  const weights = {
+    shotOnTarget: 0.3,
+    dangerousAttack: 0.2,
+    corner: 0.15,
+    freekick: 0.1,
+    yellowCard: -0.05,
+  }
+
+  // Apply the weights to calculate the weighted probability
+  let baseScore = 0
+  events.forEach((event) => {
+    if (event.isDangerous && event.type === 'shot') {
+      baseScore += weights.shotOnTarget
+    }
+    else if (event.type === 'corner') {
+      baseScore += weights.corner
+    }
+    else if (event.type === 'freekick') {
+      baseScore += weights.freekick
+    }
+    else if (event.type === 'yellowcard') {
+      baseScore += weights.yellowCard
+    }
+  })
+
+  const score = events.reduce((sum, event) => {
+    switch (event.type) {
+      case 'goal': return sum + 0.5
+      case 'shot': return sum + (event.isDangerous ? 0.4 : 0.2)
+      case 'corner': return sum + 0.15
+      case 'freekick': return sum + 0.1
+      case 'yellowcard': return sum - 0.05
+      default: return sum
+    }
+  }, baseScore) // Start with the base score calculated using weights
+
+  return Math.min(1, Math.max(0, score * 0.7))
+}
+
+// Placeholder functions that would be implemented in a full solution
+function identifyKeyFactors(_events: MatchEvent[]): string[] {
+  return ['Pressure', 'Attacking momentum']
+}
+
+function calculatePressureIndex(events: MatchEvent[]): number {
+  return Math.min(1, events.length * 0.1)
+}
+
+function calculateDangerRatio(events: MatchEvent[]): number {
+  const dangerousEvents = events.filter(e => e.isDangerous)
+  return events.length > 0 ? dangerousEvents.length / events.length : 0
+}
+
+function calculateShotFrequency(events: MatchEvent[]): number {
+  return events.filter(e => e.type === 'shot').length
+}
+
+function countSetPieces(events: MatchEvent[]): number {
+  return events.filter(e => e.type === 'freekick' || e.type === 'corner').length
+}
+
+function calculateGoalIntensity(events: MatchEvent[]): number {
+  return events.filter(e => e.type === 'goal').length * 0.5
+}
+
+function detectPatterns(_events: MatchEvent[]): number {
+  // Simplified implementation - would be more sophisticated in production
+  return Math.random() * 0.5 + 0.2 // Return a random value between 0.2 and 0.7
 }
