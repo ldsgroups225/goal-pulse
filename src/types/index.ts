@@ -7,8 +7,11 @@ export interface MatchEvent {
   reason?: string
   result?: string
   teamId: string
-  type: 'goal' | 'yellowcard' | 'redcard' | 'substitution'
+  type: 'goal' | 'yellowcard' | 'redcard' | 'substitution' | 'freekick' | 'offside' | 'var'
   extraMinute?: number
+  isDangerous?: boolean
+  x?: number
+  y?: number
 }
 
 export interface MatchStats {
@@ -140,6 +143,23 @@ export interface Match {
       speed: string
     }
   }
+  temporalStats?: {
+    windows: TemporalWindow[];
+    metrics: TemporalStats[];
+  }
+  momentumHistory?: {
+    attack: number[];
+    defense: number[];
+  }
+  fatigueEstimation?: {
+    home: number;
+    away: number;
+  }
+  criticalZones?: {
+    leftChannel: number;
+    centerBox: number;
+    rightChannel: number;
+  }
 }
 
 export interface LiveScoreResponse {
@@ -228,5 +248,57 @@ export interface MatchPrediction {
       away: number
     }
   }
+  temporalGoalProbability?: {
+    windows: WindowAnalysis[];
+    keyMoments: {
+      preWindowGoals: MatchEvent[];
+      pressureBuildUp: MatchEvent[];
+      defensiveErrors: MatchEvent[];
+    }
+    teamComparison: {
+      home: TeamWindowStats;
+      away: TeamWindowStats;
+    }
+    momentumAnalysis: {
+      attackMomentum: number;
+      defenseStability: number;
+      fatigueIndex: number;
+    }
+    lastUpdated: string;
+  }
   lastUpdated: string
+}
+
+export interface TemporalWindow {
+  start: number;
+  end: number;
+  label: string;
+}
+
+export interface WindowAnalysis {
+  window: TemporalWindow;
+  probability: number;
+  keyFactors: string[];
+  pressureIndex: number;
+  dangerRatio: number;
+  shotFrequency: number;
+  setPieceCount: number;
+}
+
+export interface TemporalStats {
+  window: TemporalWindow;
+  shots: number;
+  shotsOnTarget: number;
+  dangerousAttacks: number;
+  corners: number;
+  freekicks: number;
+  cards: number;
+  expectedGoals: number;
+}
+
+export interface TeamWindowStats {
+  pressureIntensity: number;
+  defensiveActions: number;
+  transitionSpeed: number;
+  setPieceEfficiency: number;
 }

@@ -1,4 +1,4 @@
-import type { MatchPrediction } from '@/types'
+import type { MatchPrediction, WindowAnalysis } from '@/types'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { LiveBadge } from '@/components/ui/live-badge'
 import { cn, formatScore } from '@/lib/utils'
@@ -44,6 +44,20 @@ export function PredictionCard({
     betBoxColor = 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300'
   }
 
+  // Get temporal goal prediction if available
+  const temporalPrediction = data.temporalGoalProbability?.windows
+  const highestGoalWindow = temporalPrediction && temporalPrediction.length > 0
+    ? [...temporalPrediction].sort((a, b) => b.probability - a.probability)[0]
+    : null
+
+  // Format temporal prediction text
+  const temporalText = highestGoalWindow
+    ? `${Math.round(highestGoalWindow.probability * 100)}% Goal in ${highestGoalWindow.window.label}`
+    : null
+
+  // Determine if we should show temporal prediction (high probability)
+  const showTemporalPrediction = highestGoalWindow && highestGoalWindow.probability > 0.25
+
   return (
     <div
       className={cn(
@@ -85,6 +99,7 @@ export function PredictionCard({
                   src={data.teams.home.logoUrl || '/placeholder-team.png'}
                   alt={data.teams.home.name}
                   fill
+                  sizes="24px"
                   className="object-contain"
                 />
               </div>
@@ -112,6 +127,7 @@ export function PredictionCard({
                   src={data.teams.away.logoUrl || '/placeholder-team.png'}
                   alt={data.teams.away.name}
                   fill
+                  sizes="24px"
                   className="object-contain"
                 />
               </div>
@@ -198,6 +214,33 @@ export function PredictionCard({
           )}
           >
             {getHighConfidenceTip(data)}
+          </div>
+        )}
+
+        {/* Temporal Goal Prediction */}
+        {!isCompact && showTemporalPrediction && (
+          <div className={cn(
+            'px-3 py-1.5 text-sm font-medium text-center',
+            'border-t border-border/60 backdrop-blur-sm',
+            'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+          )}
+          >
+            <span className="flex items-center justify-center gap-1">
+              {/* Clock icon */}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              {temporalText}
+              {highestGoalWindow?.keyFactors && highestGoalWindow.keyFactors.length > 0
+                && highestGoalWindow.keyFactors[0] !== 'Normal play' && (
+                <span className="ml-1 text-xs opacity-90">
+                  (
+                  {highestGoalWindow.keyFactors.slice(0, 2).join(', ')}
+                  )
+                </span>
+              )}
+            </span>
           </div>
         )}
       </Link>

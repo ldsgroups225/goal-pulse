@@ -1,5 +1,6 @@
 // src/app/(predictions)/[matchId]/page.tsx
 
+import { TemporalPrediction } from '@/components/temporal-prediction'
 import { CountryFlag } from '@/components/ui/country-flag'
 import { LiveBadge } from '@/components/ui/live-badge'
 import { getMatchPredictionById } from '@/lib/api/prediction-api'
@@ -98,6 +99,7 @@ export default async function MatchPredictionPage({
                   src={prediction.teams.home.logoUrl || '/placeholder-team.png'}
                   alt={prediction.teams.home.name}
                   fill
+                  sizes="64px"
                   className="object-contain"
                 />
               </div>
@@ -125,6 +127,7 @@ export default async function MatchPredictionPage({
                   src={prediction.teams.away.logoUrl || '/placeholder-team.png'}
                   alt={prediction.teams.away.name}
                   fill
+                  sizes="64px"
                   className="object-contain"
                 />
               </div>
@@ -272,6 +275,44 @@ export default async function MatchPredictionPage({
             </div>
           </div>
         </div>
+
+        {/* Temporal Goal Probability Section */}
+        {prediction.temporalGoalProbability?.windows
+          && prediction.temporalGoalProbability.windows.length > 0 && (
+          <div className="mt-6 mb-4">
+            <TemporalPrediction
+              windows={prediction.temporalGoalProbability.windows}
+              className="bg-amber-50 p-3 rounded-lg border border-amber-100"
+            />
+
+            {/* Momentum Analysis - Top level insights */}
+            {prediction.temporalGoalProbability.momentumAnalysis && (
+              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                <div className="bg-gray-50 p-2 rounded text-center">
+                  <div className="text-xs text-gray-500 mb-1">Attack Momentum</div>
+                  <div className="font-bold">
+                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.attackMomentum * 100)}
+                    %
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded text-center">
+                  <div className="text-xs text-gray-500 mb-1">Defense Stability</div>
+                  <div className="font-bold">
+                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.defenseStability * 100)}
+                    %
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded text-center">
+                  <div className="text-xs text-gray-500 mb-1">Fatigue Index</div>
+                  <div className="font-bold">
+                    {Math.round(prediction.temporalGoalProbability.momentumAnalysis.fatigueIndex * 100)}
+                    %
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Statistics Section */}

@@ -1,5 +1,6 @@
 import type { LiveScoreResponse, Match, MatchPrediction } from '@/types'
 import { cache } from 'react'
+import { enhanceWithTemporalAnalysis } from './prediction-temporal-api'
 
 export type { MatchPrediction }
 
@@ -205,54 +206,45 @@ function analyzeMatch(match: Match): MatchPrediction | null {
       reasons.push('Based on balanced match statistics')
     }
 
-    // Try to safely access nested properties
-    const leagueName = match.league?.data?.name || 'Unknown League'
-    const countryName = match.league?.data?.country?.data?.name || 'Unknown Country'
-    const logoPath = match.league?.data?.logoPath || ''
-    const homeTeamName = match.localTeam?.data?.name || 'Home Team'
-    const homeTeamLogo = match.localTeam?.data?.logoPath || ''
-    const awayTeamName = match.visitorTeam?.data?.name || 'Away Team'
-    const awayTeamLogo = match.visitorTeam?.data?.logoPath || ''
-
-    // Compile the prediction
-    return {
+    // Create the base prediction result
+    const prediction: MatchPrediction = {
       fixtureId: match.id,
       league: {
-        name: leagueName,
-        country: countryName,
-        logoUrl: logoPath,
+        name: match.league.data.name,
+        country: match.league.data.country?.data?.name || '',
+        logoUrl: match.league.data.logoPath || '',
       },
       teams: {
         home: {
-          name: homeTeamName,
-          logoUrl: homeTeamLogo,
+          name: match.localTeam.data.name,
+          logoUrl: match.localTeam.data.logoPath || '',
           score: homeScore,
         },
         away: {
-          name: awayTeamName,
-          logoUrl: awayTeamLogo,
+          name: match.visitorTeam.data.name,
+          logoUrl: match.visitorTeam.data.logoPath || '',
           score: awayScore,
         },
       },
       status: {
-        minute: match.time.minute || 0,
-        status: match.time.status || 'Unknown',
-        isLive: match.time.status !== 'FT' && match.time.status !== 'HT',
+        minute: match.time.minute,
+        status: match.time.status,
+        isLive: match.time.status.toLowerCase() === 'live',
       },
       prediction: {
         winProbability: {
-          home: Number.parseFloat(homeWinProb.toFixed(2)),
-          draw: Number.parseFloat(drawProb.toFixed(2)),
-          away: Number.parseFloat(awayWinProb.toFixed(2)),
+          home: homeWinProb,
+          draw: drawProb,
+          away: awayWinProb,
         },
         recommendedBet,
-        confidence: Number.parseFloat(confidence.toFixed(2)),
+        confidence,
         reasons,
         goals: {
-          over15: Number.parseFloat(over15Prob.toFixed(2)),
-          over25: Number.parseFloat(over25Prob.toFixed(2)),
-          over35: Number.parseFloat(over35Prob.toFixed(2)),
-          btts: Number.parseFloat(bttsProb.toFixed(2)),
+          over15: over15Prob,
+          over25: over25Prob,
+          over35: over35Prob,
+          btts: bttsProb,
         },
       },
       stats: {
@@ -282,26 +274,23 @@ function analyzeMatch(match: Match): MatchPrediction | null {
             dangerous: awayDangerousAttacks,
           },
         },
-        cards: {
-          home: {
-            yellow: homeTeamStats?.yellowcards || 0,
-            red: homeTeamStats?.redcards || 0,
-          },
-          away: {
-            yellow: awayTeamStats?.yellowcards || 0,
-            red: awayTeamStats?.redcards || 0,
-          },
-        },
         corners: {
           home: homeTeamStats?.corners || 0,
           away: awayTeamStats?.corners || 0,
         },
+        cards: {
+          home: homeTeamStats?.yellowcards || 0,
+          away: awayTeamStats?.yellowcards || 0,
+        },
       },
       lastUpdated: new Date().toISOString(),
     }
+
+    // Enhance with temporal goal predictions
+    return enhanceWithTemporalAnalysis(prediction, match)
   }
   catch (error) {
-    console.error('Error analyzing match:', error)
+    console.error(`Error analyzing match ${match?.id}:`, error)
     return null
   }
 }
