@@ -6,7 +6,7 @@ const API_ENDPOINT = 'https://api.betmines.com/betmines/v1/fixtures/livescores';
 /**
  * Fetches live score data from the API
  */
-export async function fetchLiveScores(): Promise<LiveScoreResponse> {
+export const fetchLiveScores = cache(async (): Promise<LiveScoreResponse> => {
   try {
     const response = await fetch(API_ENDPOINT, {
       next: { revalidate: 60 }, // Revalidate every 60 seconds
@@ -21,13 +21,13 @@ export async function fetchLiveScores(): Promise<LiveScoreResponse> {
     }
 
     const responseJson = await response.json();
-    console.log({responseJson})
+    // Removed console.log to avoid performance issues
     return responseJson;
   } catch (error) {
     console.error('Error fetching live scores:', error);
     throw error;
   }
-}
+});
 
 /**
  * Analyzes match data to provide predictions

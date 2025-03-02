@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { MobileNav } from '@/components/mobile-nav';
+import { Header } from '@/components/header';
 
 export default function OfflinePage() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
@@ -15,6 +16,7 @@ export default function OfflinePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Header />
       <main className="flex-1 p-4 flex flex-col items-center justify-center">
         <div className="w-full max-w-md text-center space-y-6">
           <div className="mb-8">

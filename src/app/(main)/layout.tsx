@@ -1,5 +1,6 @@
 import { MobileNav } from '@/components/mobile-nav';
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import { Header } from '@/components/header';
+import { PWAInstallPrompt } from '../_components/pwa-install-prompt';
 
 export default function MainLayout({
   children,
@@ -8,8 +9,11 @@ export default function MainLayout({
 }) {
   return (
     <>
-      <main className="flex-1 overflow-y-auto p-4 pb-24">
-        {children}
+      <Header />
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pt-4 pb-24 max-w-7xl mx-auto">
+        <div className="w-full max-w-[1400px] mx-auto">
+          {children}
+        </div>
       </main>
       <PWAInstallPrompt />
       <MobileNav />

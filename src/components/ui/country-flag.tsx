@@ -25,7 +25,7 @@ export function CountryFlag({ country, imagePath, size = 'sm', className }: Coun
     return (
       <div 
         className={cn(
-          "inline-flex items-center justify-center rounded overflow-hidden bg-gray-200",
+          "inline-flex items-center justify-center rounded overflow-hidden bg-gray-200 dark:bg-gray-700",
           className
         )}
         style={{ width, height }}
@@ -37,7 +37,7 @@ export function CountryFlag({ country, imagePath, size = 'sm', className }: Coun
   return (
     <div 
       className={cn(
-        "inline-flex items-center justify-center rounded overflow-hidden border border-gray-200",
+        "inline-flex items-center justify-center rounded overflow-hidden border border-border/40 dark:border-border/30 shadow-sm",
         className
       )}
       style={{ width, height }}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMatchPredictionById } from '@/lib/api/prediction-api';
 
 export const dynamic = 'force-dynamic'; // Ensure this route is not statically optimized
+export const revalidate = 60;
 
 /**
  * GET handler for /api/predictions/[id]
@@ -36,11 +37,15 @@ export async function GET(
       );
     }
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: prediction,
       timestamp: new Date().toISOString()
     });
+    
+    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=60');
+    
+    return response;
   } catch (error) {
     console.error(`API error fetching prediction with ID ${params.id}:`, error);
     

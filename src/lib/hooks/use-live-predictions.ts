@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePredictions } from '@/lib/store/use-predictions';
 import { MatchPrediction } from '@/types';
 
-const AUTO_REFRESH_INTERVAL = 60000; // 60 seconds
+// Increase refresh interval from 60s to 2 minutes to reduce API load
+const AUTO_REFRESH_INTERVAL = 120000; // 2 minutes
+// Minimum time between manual refreshes
+const MIN_MANUAL_REFRESH_INTERVAL = 30000; // 30 seconds
 
 /**
  * Custom hook for fetching and managing live predictions data
- * Provides auto-refresh functionality
+ * Provides auto-refresh functionality with throttling to prevent excessive API calls
  */
 export function useLivePredictions() {
   const { 
@@ -22,13 +25,26 @@ export function useLivePredictions() {
   } = usePredictions();
   
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const lastFetchTimeRef = useRef<number>(0);
+  const fetchingRef = useRef<boolean>(false);
 
-  // Function to fetch predictions
+  // Function to fetch predictions with throttling
   const fetchPredictions = async () => {
-    if (isLoading) return;
+    // Prevent concurrent fetches and throttle requests
+    const now = Date.now();
+    if (
+      fetchingRef.current || 
+      isLoading || 
+      (now - lastFetchTimeRef.current < MIN_MANUAL_REFRESH_INTERVAL)
+    ) {
+      return;
+    }
     
     try {
+      fetchingRef.current = true;
       setLoading(true);
+      lastFetchTimeRef.current = now;
+      
       const response = await fetch('/api/predictions');
       
       if (!response.ok) {
@@ -47,6 +63,7 @@ export function useLivePredictions() {
       console.error('Error fetching predictions:', err);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   };
 
@@ -55,7 +72,7 @@ export function useLivePredictions() {
     fetchPredictions();
   }, []);
 
-  // Set up auto-refresh interval
+  // Set up auto-refresh interval with debounce
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     

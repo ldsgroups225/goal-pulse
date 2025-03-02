@@ -1,84 +1,62 @@
 'use client';
 
+import { BarChart2Icon, HomeIcon, Settings2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export function MobileNav() {
   const pathname = usePathname();
-
-  const navItems = [
+  
+  // Navigation items
+  const items = [
     {
-      name: 'Live',
+      title: 'Home',
       href: '/',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-zap">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-      ),
+      icon: HomeIcon,
     },
     {
-      name: 'Upcoming',
-      href: '/upcoming',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar">
-          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-          <line x1="16" x2="16" y1="2" y2="6" />
-          <line x1="8" x2="8" y1="2" y2="6" />
-          <line x1="3" x2="21" y1="10" y2="10" />
-        </svg>
-      ),
+      title: 'Predictions',
+      href: '/predictions',
+      icon: BarChart2Icon,
     },
     {
-      name: 'Results',
-      href: '/results',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-history">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-          <path d="M3 3v5h5" />
-          <path d="M12 7v5l4 2" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Alerts',
-      href: '/alerts',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell">
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </svg>
-      ),
+      title: 'Settings',
+      href: '/settings',
+      icon: Settings2Icon,
     },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe">
-      <div className="flex items-center justify-around">
-        {navItems.map((item) => {
-          const isActive = 
-            (item.href === '/' && pathname === '/') || 
-            (item.href !== '/' && pathname.startsWith(item.href));
-            
+    <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-border/60 bg-background/95 backdrop-blur-md pb-safe dark:bg-background/80 dark:border-border/40 shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+      <div className="mx-auto flex h-16">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          
           return (
             <Link
-              key={item.name}
+              key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center py-2 px-3 min-w-[64px]",
-                "text-xs font-medium transition-colors",
-                isActive 
-                  ? "text-primary" 
-                  : "text-gray-500 hover:text-gray-900"
+                "flex flex-1 flex-col items-center justify-center text-xs transition-colors duration-200",
+                isActive
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <span className={cn(
-                "mb-1",
-                isActive ? "text-primary" : "text-gray-500"
+              <div className={cn(
+                "flex items-center justify-center w-10 h-10 mb-0.5 rounded-full",
+                isActive && "bg-primary/10"
               )}>
-                {item.icon}
-              </span>
-              {item.name}
+                <Icon className={cn(
+                  "h-5 w-5",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-muted-foreground group-hover:text-foreground"
+                )} />
+              </div>
+              <span>{item.title}</span>
             </Link>
           );
         })}
