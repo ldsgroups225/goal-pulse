@@ -58,9 +58,6 @@ export function PredictionCard({
   // Enhanced UI for cards with red cards
   const redCardHighlight = hasRedCard && isLive ? 'border-red-500 dark:border-red-500' : ''
 
-  // Get match start time from data if available
-  const matchStartTime = data.lastUpdated // Using lastUpdated as a placeholder - replace with actual start time field
-
   return (
     <div
       className={cn(
@@ -91,7 +88,6 @@ export function PredictionCard({
             <LiveBadge
               status={statusText}
               minute={matchMinute}
-              startTime={statusText === 'NS' ? matchStartTime : undefined}
             />
 
             {/* Red card indicator */}
@@ -229,7 +225,7 @@ export function PredictionCard({
             <div className="flex flex-col items-center justify-center py-2 px-1 bg-secondary dark:bg-secondary/30">
               <div className="text-xs opacity-80 mb-0.5">Next Goal</div>
               <div className="text-xl font-bold text-secondary-foreground">
-                {data.prediction.goals && typeof data.prediction.goals.over15 === 'number'
+                {data.prediction.goals?.over15 && typeof data.prediction.goals.over15 === 'number'
                   ? `${Math.round(data.prediction.goals.over15 * 100)}%`
                   : '-'}
               </div>
@@ -331,93 +327,238 @@ export function PredictionCard({
 
 // Helper to get high confidence tip text
 function getHighConfidenceTip(data: MatchPrediction): string {
-  const confidence = data.prediction.confidence
+  // Extract match state data
+  const { status, prediction, temporalGoalProbability, stats } = data
+  const confidence = prediction.confidence
+  const isLive = status.isLive
 
-  // Determine which team is more likely to score next
-  const homeWinProb = data.prediction.winProbability.home
-  const awayWinProb = data.prediction.winProbability.away
+  // Calculate remaining time (important for prediction weighting)
+  const remainingMinutes = isLive ? Math.max(90 - status.minute, 0) : 90
+  const matchPhase = remainingMinutes >= 75 ? 'early' : remainingMinutes >= 45 ? 'mid' : remainingMinutes >= 15 ? 'late' : 'final'
 
-  // Use ProPredict terminology for high accuracy predictions
-  if (confidence >= 0.85) {
-    // Check if we have temporal data available for more precise prediction
-    if (data.temporalGoalProbability) {
-      // If there's momentum analysis, use it to determine next scorer
-      if (data.temporalGoalProbability.momentumAnalysis) {
-        const attackMomentum = data.temporalGoalProbability.momentumAnalysis.attackMomentum
+  // Time-weighted confidence modifier (predictions become more accurate as match progresses)
+  const timeConfidenceMultiplier = isLive ? Math.min(1.15, 1 + ((90 - remainingMinutes) / 200)) : 1
+  const adjustedConfidence = Math.min(0.98, confidence * timeConfidenceMultiplier)
 
-        if (attackMomentum > 0.6) {
-          return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`
-        }
-        else if (attackMomentum < 0.4) {
-          return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`
-        }
-      }
+  // Get current score difference and calculate comeback likelihood
+  const scoreDifference = data.teams.home.score - data.teams.away.score
+  const homeLeading = scoreDifference > 0
+  const awayLeading = scoreDifference < 0
+  const leadMagnitude = Math.abs(scoreDifference)
 
-      // Use team comparison if available
-      if (data.temporalGoalProbability.teamComparison) {
-        const homeStats = data.temporalGoalProbability.teamComparison.home
-        const awayStats = data.temporalGoalProbability.teamComparison.away
+  // Calculate urgency factor based on score difference and time
+  const urgencyFactor = (leadMagnitude / (remainingMinutes + 10)) * 10
 
-        if (homeStats.pressureIntensity > awayStats.pressureIntensity * 1.5) {
-          return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`
-        }
-        else if (awayStats.pressureIntensity > homeStats.pressureIntensity * 1.5) {
-          return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`
-        }
-      }
-    }
+  // Create advanced scoring likelihood model
+  function calculateScoringLikelihood(teamType: 'home' | 'away'): number {
+    const isHome = teamType === 'home'
+    const opposingTeam = isHome ? 'away' : 'home'
 
-    // If no temporal data, use basic stats for high confidence predictions
-    if (data.stats) {
-      const homePossession = data.stats.possession.home
-      const awayPossession = data.stats.possession.away
-      const homeShotsOnTarget = data.stats.shots.home.onTarget
-      const awayShotsOnTarget = data.stats.shots.away.onTarget
-      const homeDangerousAttacks = data.stats.attacks.home.dangerous
-      const awayDangerousAttacks = data.stats.attacks.away.dangerous
+    // Base stats
+    const possession = stats?.possession[teamType] || 50
+    const shotsOnTarget = stats?.shots[teamType]?.onTarget || 0
+    const shotsTotal = stats?.shots[teamType]?.total || 0
+    const dangerousAttacks = stats?.attacks[teamType]?.dangerous || 0
+    const opposingRedCards = stats?.cards[opposingTeam]?.red || 0
 
-      // Calculate a simple scoring likelihood score
-      const homeScore = (homePossession / 100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01)
-      const awayScore = (awayPossession / 100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01)
+    // Advanced stats when available
+    let pressureIntensity = 0
+    let transitionSpeed = 0
+    let defensiveActions = 0
+    let setPieceEfficiency = 0
+    let attackMomentum = 0
 
-      if (homeScore > awayScore * 1.3) {
-        return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`
-      }
-      else if (awayScore > homeScore * 1.3) {
-        return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`
+    if (temporalGoalProbability?.teamComparison) {
+      const teamStats = temporalGoalProbability.teamComparison[teamType]
+      pressureIntensity = teamStats?.pressureIntensity || 0
+      transitionSpeed = teamStats?.transitionSpeed || 0
+      defensiveActions = teamStats?.defensiveActions || 0
+      setPieceEfficiency = teamStats?.setPieceEfficiency || 0
+
+      if (temporalGoalProbability.momentumAnalysis) {
+        attackMomentum = isHome
+          ? temporalGoalProbability.momentumAnalysis.attackMomentum
+          : 1 - temporalGoalProbability.momentumAnalysis.attackMomentum
       }
     }
 
-    // Fallback to win probability for high confidence cases
-    if (homeWinProb > awayWinProb * 1.5) {
-      return `ProPredict: ${data.teams.home.name} will score next (${Math.round(confidence * 100)}%)`
-    }
-    else if (awayWinProb > homeWinProb * 1.5) {
-      return `ProPredict: ${data.teams.away.name} will score next (${Math.round(confidence * 100)}%)`
-    }
+    // Calculate fatigue factor
+    const fatigueFactor = remainingMinutes < 30 ? 0.9 - (remainingMinutes / 100) : 1
 
-    // Default for high confidence but unclear which team
-    return `ProPredict: Goal expected soon (${Math.round(confidence * 100)}%)`
+    // Urgency multiplier based on score and time
+    const urgencyMultiplier = isHome
+      ? (homeLeading ? 0.85 : awayLeading ? 1.2 : 1) * (1 + urgencyFactor / 10)
+      : (awayLeading ? 0.85 : homeLeading ? 1.2 : 1) * (1 + urgencyFactor / 10)
+
+    // Time-based factors (teams often score at specific times)
+    const timePatternFactor = (matchPhase === 'early' && remainingMinutes > 85)
+      ? 1.1 // Early goals
+      : (matchPhase === 'mid' && Math.abs(remainingMinutes - 45) < 5)
+          ? 1.15 // End of halves
+          : (matchPhase === 'late')
+              ? 1.2 // Last 15 mins
+              : (matchPhase === 'final' && remainingMinutes < 5)
+                  ? 1.3 // Final minutes
+                  : 1
+
+    // Calculate raw scoring likelihood
+    const rawLikelihood = (possession / 100 * 0.2)
+      + (shotsOnTarget * 0.3)
+      + (shotsTotal * 0.1)
+      + (dangerousAttacks * 0.008)
+      + (pressureIntensity * 0.15)
+      + (transitionSpeed * 0.12)
+      + (setPieceEfficiency * 0.1)
+      + (attackMomentum * 0.25)
+      + (opposingRedCards * 0.5)
+      - (defensiveActions * 0.05)
+
+    // Apply modifiers
+    return rawLikelihood * urgencyMultiplier * timePatternFactor * fatigueFactor
   }
-  else if (confidence >= 0.7) {
-    // Medium confidence predictions - just indicate a goal is expected
+
+  // Get highest probability windows if available
+  const highProbabilityWindows: Array<{ team: 'home' | 'away', windowStart: number, probability: number }> = []
+
+  if (temporalGoalProbability?.windows && isLive) {
+    // Find windows that include current match time
+    const relevantWindows = temporalGoalProbability.windows.filter(w =>
+      (w.window.start <= status.minute && w.window.end >= status.minute),
+    )
+
+    if (relevantWindows.length > 0) {
+      // Determine which team is more likely to score in these windows
+      const homeAttackMomentum = temporalGoalProbability.momentumAnalysis?.attackMomentum || 0.5
+      relevantWindows.forEach((window) => {
+        const homeProb = window.probability * homeAttackMomentum
+        const awayProb = window.probability * (1 - homeAttackMomentum)
+
+        if (homeProb > 0.3) {
+          highProbabilityWindows.push({
+            team: 'home',
+            windowStart: window.window.start,
+            probability: homeProb,
+          })
+        }
+
+        if (awayProb > 0.3) {
+          highProbabilityWindows.push({
+            team: 'away',
+            windowStart: window.window.start,
+            probability: awayProb,
+          })
+        }
+      })
+
+      // Sort by probability
+      highProbabilityWindows.sort((a, b) => b.probability - a.probability)
+    }
+  }
+
+  // Calculate team scoring likelihoods
+  const homeLikelihood = calculateScoringLikelihood('home')
+  const awayLikelihood = calculateScoringLikelihood('away')
+  const likelihoodRatio = homeLikelihood / Math.max(0.1, awayLikelihood)
+  const percentageConfidence = Math.round(adjustedConfidence * 100)
+
+  // Very high confidence predictions with extensive data and time context
+  if (adjustedConfidence >= 0.88) {
+    // If we have high probability windows in the current time, use them for very precise predictions
+    if (highProbabilityWindows.length > 0 && highProbabilityWindows[0].probability > 0.6) {
+      const topWindow = highProbabilityWindows[0]
+      const team = data.teams[topWindow.team].name
+      const windowEnd = Math.min(status.minute + 10, 90)
+
+      return `ProPredict: ${team} to score between ${status.minute}'-${windowEnd}' (${percentageConfidence}%)`
+    }
+
+    // Use advanced team comparison from calculated likelihoods
+    if (likelihoodRatio > 1.8) {
+      return `ProPredict: ${data.teams.home.name} will score next (${percentageConfidence}%)`
+    }
+    else if (likelihoodRatio < 0.55) {
+      return `ProPredict: ${data.teams.away.name} will score next (${percentageConfidence}%)`
+    }
+
+    // Determine if we expect goals based on match state
+    const overUnderThreshold = matchPhase === 'late' ? 0.7 : 0.75
+    if (prediction.goals?.over15 > overUnderThreshold) {
+      if (remainingMinutes < 15) {
+        return `ProPredict: Goal imminent (${percentageConfidence}%)`
+      }
+      return `ProPredict: Goal expected soon (${percentageConfidence}%)`
+    }
+
+    // Add a default return for the high confidence block
+    return `ProPredict: High confidence prediction (${percentageConfidence}%)`
+  }
+  else if (adjustedConfidence >= 0.78) {
+    // Different message based on match phase
+    if (matchPhase === 'early') {
+      const likelyTeam = likelihoodRatio > 1.5
+        ? data.teams.home.name
+        : likelihoodRatio < 0.67 ? data.teams.away.name : null
+
+      if (likelyTeam) {
+        return `ProPredict: ${likelyTeam} creating early chances (${percentageConfidence}%)`
+      }
+      return `ProPredict: Early goal opportunity (${percentageConfidence}%)`
+    }
+
+    if (matchPhase === 'mid') {
+      const goalProb = data.prediction.goals?.over15 || 0
+      if (goalProb > 0.7) {
+        return `ProPredict: Goal before halftime (${Math.round(goalProb * 100)}%)`
+      }
+      return `ProPredict: Mid-match analysis inconclusive (${percentageConfidence}%)`
+    }
+
+    if (matchPhase === 'late' || matchPhase === 'final') {
+      if (scoreDifference !== 0) {
+        const leadingTeam = homeLeading ? data.teams.home.name : data.teams.away.name
+        const trailingTeam = homeLeading ? data.teams.away.name : data.teams.home.name
+        const trailingLikelihood = homeLeading ? awayLikelihood : homeLikelihood
+
+        if (trailingLikelihood > 0.6 && urgencyFactor > 1) {
+          return `ProPredict: ${trailingTeam} pushing for equalizer (${percentageConfidence}%)`
+        }
+        return `ProPredict: ${leadingTeam} likely to hold lead (${percentageConfidence}%)`
+      }
+      else {
+        return `ProPredict: Match finely balanced (${percentageConfidence}%)`
+      }
+    }
+
+    // Default high confidence message
+    return `ProPredict: Goal opportunity building (${percentageConfidence}%)`
+  }
+  else if (adjustedConfidence >= 0.65) {
     const goalProb = data.prediction.goals?.over15 || 0
-    if (goalProb > 0.65) {
-      return `ProPredict: Goal expected (${Math.round(goalProb * 100)}%)`
+    const bttsProb = prediction.goals?.btts || 0
+
+    if (scoreDifference === 0 && bttsProb > 0.7 && remainingMinutes > 30) {
+      return `ProPredict: Both teams to score (${Math.round(bttsProb * 100)}%)`
     }
 
-    // Basic prediction without specifying team for medium confidence
-    return `ProPredict: Next goal opportunity (${Math.round(confidence * 100)}%)`
-  }
+    if (goalProb > 0.65) {
+      if (matchPhase === 'late' || matchPhase === 'final') {
+        return `ProPredict: Late goal expected (${Math.round(goalProb * 100)}%)`
+      }
+      return `ProPredict: Goal likely (${Math.round(goalProb * 100)}%)`
+    }
 
-  // Low confidence prediction
-  return `ProPredict: Analyzing match data...`
+    return `ProPredict: Analyzing match patterns (${percentageConfidence}%)`
+  }
+  else {
+    // Low confidence or insufficient data
+    return `ProPredict: Analyzing match data...`
+  }
 }
 
 // Helper to determine the color for the next scorer bet box
 function getNextScorerBetColor(data: MatchPrediction): string {
   // Default color for ProPredict
-  let betBoxColor = 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  let betBoxColor = 'bg-card/60 text-card-foreground dark:bg-card/40 dark:text-card-foreground'
 
   const confidence = data.prediction.confidence
 
@@ -443,7 +584,7 @@ function getNextScorerBetColor(data: MatchPrediction): string {
       }
       else {
         // For high confidence general predictions - purple gradient
-        betBoxColor = 'bg-gradient-to-r from-indigo-200 to-purple-200 text-purple-900 dark:bg-gradient-to-r dark:from-indigo-900/50 dark:to-purple-900/50 dark:text-purple-200'
+        betBoxColor = 'bg-gradient-to-r from-indigo-200 to-purple-200 text-purple-900 dark:from-indigo-900/50 dark:to-purple-900/50 dark:text-purple-200'
       }
     }
   }
@@ -463,8 +604,8 @@ function getNextScorerBetColor(data: MatchPrediction): string {
 
 // Helper to check if home team is likely to score next
 function isHomeTeamLikelyToScoreNext(data: MatchPrediction): boolean {
-  const homeWinProb = data.prediction.winProbability.home
-  const awayWinProb = data.prediction.winProbability.away
+  const homeWinProb = data.prediction.winProbability?.home || 0
+  const awayWinProb = data.prediction.winProbability?.away || 0
 
   // Check temporal data first
   if (data.temporalGoalProbability) {
@@ -477,19 +618,19 @@ function isHomeTeamLikelyToScoreNext(data: MatchPrediction): boolean {
     if (data.temporalGoalProbability.teamComparison) {
       const homeStats = data.temporalGoalProbability.teamComparison.home
       const awayStats = data.temporalGoalProbability.teamComparison.away
-      if (homeStats.pressureIntensity > awayStats.pressureIntensity * 1.5)
+      if (homeStats?.pressureIntensity > (awayStats?.pressureIntensity || 0) * 1.5)
         return true
     }
   }
 
   // Check basic stats
   if (data.stats) {
-    const homePossession = data.stats.possession.home
-    const awayPossession = data.stats.possession.away
-    const homeShotsOnTarget = data.stats.shots.home.onTarget
-    const awayShotsOnTarget = data.stats.shots.away.onTarget
-    const homeDangerousAttacks = data.stats.attacks.home.dangerous
-    const awayDangerousAttacks = data.stats.attacks.away.dangerous
+    const homePossession = data.stats.possession?.home || 50
+    const awayPossession = data.stats.possession?.away || 50
+    const homeShotsOnTarget = data.stats.shots?.home?.onTarget || 0
+    const awayShotsOnTarget = data.stats.shots?.away?.onTarget || 0
+    const homeDangerousAttacks = data.stats.attacks?.home?.dangerous || 0
+    const awayDangerousAttacks = data.stats.attacks?.away?.dangerous || 0
 
     const homeScore = (homePossession / 100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01)
     const awayScore = (awayPossession / 100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01)
@@ -504,8 +645,8 @@ function isHomeTeamLikelyToScoreNext(data: MatchPrediction): boolean {
 
 // Helper to check if away team is likely to score next
 function isAwayTeamLikelyToScoreNext(data: MatchPrediction): boolean {
-  const homeWinProb = data.prediction.winProbability.home
-  const awayWinProb = data.prediction.winProbability.away
+  const homeWinProb = data.prediction.winProbability?.home || 0
+  const awayWinProb = data.prediction.winProbability?.away || 0
 
   // Check temporal data first
   if (data.temporalGoalProbability) {
@@ -518,19 +659,19 @@ function isAwayTeamLikelyToScoreNext(data: MatchPrediction): boolean {
     if (data.temporalGoalProbability.teamComparison) {
       const homeStats = data.temporalGoalProbability.teamComparison.home
       const awayStats = data.temporalGoalProbability.teamComparison.away
-      if (awayStats.pressureIntensity > homeStats.pressureIntensity * 1.5)
+      if (awayStats?.pressureIntensity > (homeStats?.pressureIntensity || 0) * 1.5)
         return true
     }
   }
 
   // Check basic stats
   if (data.stats) {
-    const homePossession = data.stats.possession.home
-    const awayPossession = data.stats.possession.away
-    const homeShotsOnTarget = data.stats.shots.home.onTarget
-    const awayShotsOnTarget = data.stats.shots.away.onTarget
-    const homeDangerousAttacks = data.stats.attacks.home.dangerous
-    const awayDangerousAttacks = data.stats.attacks.away.dangerous
+    const homePossession = data.stats.possession?.home || 50
+    const awayPossession = data.stats.possession?.away || 50
+    const homeShotsOnTarget = data.stats.shots?.home?.onTarget || 0
+    const awayShotsOnTarget = data.stats.shots?.away?.onTarget || 0
+    const homeDangerousAttacks = data.stats.attacks?.home?.dangerous || 0
+    const awayDangerousAttacks = data.stats.attacks?.away?.dangerous || 0
 
     const homeScore = (homePossession / 100 * 0.3) + (homeShotsOnTarget * 0.5) + (homeDangerousAttacks * 0.01)
     const awayScore = (awayPossession / 100 * 0.3) + (awayShotsOnTarget * 0.5) + (awayDangerousAttacks * 0.01)
