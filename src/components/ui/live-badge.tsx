@@ -8,12 +8,12 @@ interface LiveBadgeProps {
   startTime?: string
 }
 
-export function LiveBadge({ 
-  minute, 
-  status, 
-  period, 
+export function LiveBadge({
+  minute,
+  status,
+  period,
   className,
-  startTime
+  startTime,
 }: LiveBadgeProps) {
   // Determine if the match is live
   const isLive = status !== 'FT' && status !== 'HT' && status !== 'NS'
@@ -103,12 +103,13 @@ export function LiveBadge({
 function formatStartTime(dateTimeStr: string): string {
   try {
     const date = new Date(dateTimeStr)
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true,
     })
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error formatting start time:', error)
     return dateTimeStr
   }
