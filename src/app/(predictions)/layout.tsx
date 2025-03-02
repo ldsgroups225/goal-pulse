@@ -1,5 +1,5 @@
-import { MobileNav } from '@/components/mobile-nav';
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import { MobileNav } from '@/components/mobile-nav'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 
 export default function PredictionsLayout({
   children,
@@ -14,5 +14,5 @@ export default function PredictionsLayout({
       <PWAInstallPrompt />
       <MobileNav />
     </>
-  );
+  )
 }

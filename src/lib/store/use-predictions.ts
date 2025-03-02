@@ -1,16 +1,16 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { MatchPrediction } from '../api/prediction-api';
+import type { MatchPrediction } from '../api/prediction-api'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface PredictionState {
-  predictions: MatchPrediction[];
-  lastUpdated: Date | null;
-  isLoading: boolean;
-  error: string | null;
-  updatePredictions: (data: MatchPrediction[]) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  getPredictionById: (id: number) => MatchPrediction | undefined;
+  predictions: MatchPrediction[]
+  lastUpdated: Date | null
+  isLoading: boolean
+  error: string | null
+  updatePredictions: (data: MatchPrediction[]) => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  getPredictionById: (id: number) => MatchPrediction | undefined
 }
 
 export const usePredictions = create<PredictionState>()(
@@ -20,32 +20,32 @@ export const usePredictions = create<PredictionState>()(
       lastUpdated: null,
       isLoading: false,
       error: null,
-      
-      updatePredictions: (data) => set({
+
+      updatePredictions: data => set({
         predictions: data,
         lastUpdated: new Date(),
-        error: null
+        error: null,
       }),
-      
-      setLoading: (loading) => set({
-        isLoading: loading
+
+      setLoading: loading => set({
+        isLoading: loading,
       }),
-      
-      setError: (error) => set({
+
+      setError: error => set({
         error,
-        isLoading: false
+        isLoading: false,
       }),
-      
+
       getPredictionById: (id) => {
-        return get().predictions.find(prediction => prediction.fixtureId === id);
-      }
+        return get().predictions.find(prediction => prediction.fixtureId === id)
+      },
     }),
     {
       name: 'predictions-store',
-      partialize: (state) => ({ 
+      partialize: state => ({
         predictions: state.predictions,
-        lastUpdated: state.lastUpdated 
+        lastUpdated: state.lastUpdated,
       }),
-    }
-  )
-);
+    },
+  ),
+)

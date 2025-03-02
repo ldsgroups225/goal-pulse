@@ -1,17 +1,17 @@
 'use client'
 
-import { usePWA } from "@/lib/pwa";
-import { useState } from "react";
+import { usePWA } from '@/lib/pwa'
+import { useState } from 'react'
 
 /**
  * PWA installation prompt component
  */
 export function PWAInstallPrompt() {
-  const { isInstallable, promptInstall } = usePWA();
-  const [dismissed, setDismissed] = useState(false);
+  const { isInstallable, promptInstall } = usePWA()
+  const [dismissed, setDismissed] = useState(false)
 
   if (!isInstallable || dismissed) {
-    return null;
+    return null
   }
 
   return (
@@ -37,5 +37,5 @@ export function PWAInstallPrompt() {
         </div>
       </div>
     </div>
-  );
+  )
 }

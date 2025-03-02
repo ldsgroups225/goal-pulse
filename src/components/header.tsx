@@ -1,27 +1,27 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ThemeToggle } from './theme-toggle';
-import { ActivityIcon } from 'lucide-react';
+import { ActivityIcon } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { ThemeToggle } from './theme-toggle'
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  
+  const [isScrolled, setIsScrolled] = useState(false)
+
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+      setIsScrolled(window.scrollY > 10)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
     <header
       className={`sticky top-0 z-40 w-full transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-background/95 backdrop-blur-md border-b border-border/60 shadow-sm dark:bg-background/80 dark:border-border/40' 
+        isScrolled
+          ? 'bg-background/95 backdrop-blur-md border-b border-border/60 shadow-sm dark:bg-background/80 dark:border-border/40'
           : 'bg-background dark:bg-background'
       }`}
     >
@@ -36,9 +36,9 @@ export function Header() {
             <span className="text-primary">Pulse</span>
           </span>
         </Link>
-        
+
         <div className="flex items-center gap-3">
-          <Link 
+          <Link
             href="/predictions"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 hidden sm:block"
           >
@@ -49,5 +49,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }
