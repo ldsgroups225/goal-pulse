@@ -8,12 +8,17 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+interface MatchPageProps {
+  params: Promise<{
+    matchId: string
+  }>
+}
+
 export default async function MatchPredictionPage({
   params,
-}: {
-  params: { matchId: string }
-}) {
-  const matchId = Number.parseInt(params.matchId, 10)
+}: MatchPageProps) {
+  const { matchId: matchIdStr } = await params
+  const matchId = Number.parseInt(matchIdStr, 10)
   const randomId = Math.random().toString(36).substring(2, 9)
 
   if (Number.isNaN(matchId)) {

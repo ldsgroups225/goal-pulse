@@ -13,12 +13,13 @@ export const revalidate = 60
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const id = Number.parseInt(params.id, 10)
+    const { id } = await params
+    const matchId = Number.parseInt(id, 10)
 
-    if (Number.isNaN(id)) {
+    if (Number.isNaN(matchId)) {
       return NextResponse.json(
         {
           success: false,
@@ -28,7 +29,7 @@ export async function GET(
       )
     }
 
-    const prediction = await getMatchPredictionById(id)
+    const prediction = await getMatchPredictionById(matchId)
 
     if (!prediction) {
       return NextResponse.json(
@@ -51,7 +52,7 @@ export async function GET(
     return response
   }
   catch (error) {
-    console.error(`API error fetching prediction with ID ${params.id}:`, error)
+    console.error('API error fetching prediction:', error)
 
     return NextResponse.json(
       {
