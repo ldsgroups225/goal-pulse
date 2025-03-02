@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MobileNav } from '@/app/components/mobile-nav';
+import { MobileNav } from '@/components/mobile-nav';
 
 export default function OfflinePage() {
   const [lastUpdate, setLastUpdate] = useState<string>('');

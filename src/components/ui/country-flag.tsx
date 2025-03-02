@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { cn } from '@/app/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface CountryFlagProps {
   country: string;

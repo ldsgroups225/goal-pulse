@@ -1,5 +1,5 @@
-import { MobileNav } from '@/app/components/mobile-nav';
-import { PWAInstallPrompt } from '../components/pwa-install-prompt';
+import { MobileNav } from '@/components/mobile-nav';
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
 
 export default function MainLayout({
   children,

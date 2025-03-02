@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getMatchPredictionById } from '@/app/lib/api/prediction-api';
-import { LiveBadge } from '@/app/components/ui/live-badge';
-import { CountryFlag } from '@/app/components/ui/country-flag';
-import { cn, formatConfidence } from '@/app/lib/utils';
+import { getMatchPredictionById } from '@/lib/api/prediction-api';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { CountryFlag } from '@/components/ui/country-flag';
+import { cn, formatConfidence } from '@/lib/utils';
 
 export default async function MatchPredictionPage({ 
   params 

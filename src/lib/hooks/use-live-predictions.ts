@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePredictions } from '../store/use-predictions';
-import { MatchPrediction } from '../api/prediction-api';
+import { usePredictions } from '@/lib/store/use-predictions';
+import { MatchPrediction } from '@/types';
 
 const AUTO_REFRESH_INTERVAL = 60000; // 60 seconds
 

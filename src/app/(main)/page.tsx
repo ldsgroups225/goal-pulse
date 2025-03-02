@@ -1,8 +1,8 @@
 'use client';
 
 import { Suspense } from 'react';
-import { getLivePredictions } from '@/app/lib/api/prediction-api';
-import { PredictionCard } from '@/app/components/prediction-card';
+import { getLivePredictions } from '@/lib/api/prediction-api';
+import { PredictionCard } from '@/components/prediction-card';
 import { useEffect } from 'react';
 
 

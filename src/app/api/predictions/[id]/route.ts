@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMatchPredictionById } from '@/app/lib/api/prediction-api';
+import { getMatchPredictionById } from '@/lib/api/prediction-api';
 
 export const dynamic = 'force-dynamic'; // Ensure this route is not statically optimized
 

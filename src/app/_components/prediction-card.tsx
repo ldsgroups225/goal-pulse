@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { MatchPrediction } from '@/app/lib/api/prediction-api';
-import { LiveBadge } from '@/app/components/ui/live-badge';
-import { CountryFlag } from '@/app/components/ui/country-flag';
-import { cn, formatScore } from '@/app/lib/utils';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { CountryFlag } from '@/components/ui/country-flag';
+import { cn, formatScore } from '@/lib/utils';
+import { MatchPrediction } from '@/types';
 
 interface PredictionCardProps {
   data: MatchPrediction;
@@ -13,6 +13,7 @@ interface PredictionCardProps {
   showPrediction?: boolean;
   className?: string;
 }
+
 
 export function PredictionCard({ 
   data, 
