@@ -1,3 +1,5 @@
+// src/app/_components/pwa-install-prompt.tsx
+
 'use client'
 
 import { usePWA } from '@/lib/pwa'
@@ -23,12 +25,14 @@ export function PWAInstallPrompt() {
         </p>
         <div className="flex gap-2 mt-2">
           <button
+            type="button"
             onClick={() => setDismissed(true)}
             className="flex-1 px-4 py-2 text-sm rounded-md border hover:bg-secondary/50"
           >
             Not now
           </button>
           <button
+            type="button"
             onClick={promptInstall}
             className="flex-1 px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
           >

@@ -58,10 +58,10 @@ export function usePWA() {
     const choiceResult = await deferredPrompt.userChoice
 
     if (choiceResult.outcome === 'accepted') {
-      console.log('User accepted the PWA installation')
+      console.warn('User accepted the PWA installation')
     }
     else {
-      console.log('User dismissed the PWA installation')
+      console.warn('User dismissed the PWA installation')
     }
 
     // Clear the deferred prompt

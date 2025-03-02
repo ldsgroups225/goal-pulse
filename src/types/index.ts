@@ -69,7 +69,6 @@ export interface League {
     additionalProperties: {
       entry: Array<{
         key: string
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         value: any
       }>
     }

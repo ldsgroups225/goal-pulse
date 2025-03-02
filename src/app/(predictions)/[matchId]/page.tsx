@@ -1,3 +1,5 @@
+// src/app/(predictions)/[matchId]/page.tsx
+
 import { CountryFlag } from '@/components/ui/country-flag'
 import { LiveBadge } from '@/components/ui/live-badge'
 import { getMatchPredictionById } from '@/lib/api/prediction-api'
@@ -12,8 +14,9 @@ export default async function MatchPredictionPage({
   params: { matchId: string }
 }) {
   const matchId = Number.parseInt(params.matchId, 10)
+  const randomId = Math.random().toString(36).substring(2, 9)
 
-  if (isNaN(matchId)) {
+  if (Number.isNaN(matchId)) {
     notFound()
   }
 
@@ -185,8 +188,8 @@ export default async function MatchPredictionPage({
           <div className="text-lg font-bold">{prediction.prediction.recommendedBet}</div>
 
           <div className="mt-3 text-sm text-gray-600">
-            {prediction.prediction.reasons.map((reason, i) => (
-              <div key={i} className="flex items-start mb-1">
+            {prediction.prediction.reasons.map(reason => (
+              <div key={randomId} className="flex items-start mb-1">
                 <span className="mr-2">•</span>
                 <span>{reason}</span>
               </div>

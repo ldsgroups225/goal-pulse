@@ -19,6 +19,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       className="relative inline-flex items-center justify-center rounded-full p-2.5 text-sm
                  font-medium transition-all duration-300 ease-snappy

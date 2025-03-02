@@ -1,3 +1,5 @@
+// src/app/(predictions)/layout.tsx
+
 import { MobileNav } from '@/components/mobile-nav'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 

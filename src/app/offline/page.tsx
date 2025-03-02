@@ -53,6 +53,7 @@ export default function OfflinePage() {
           )}
 
           <button
+            type="button"
             onClick={() => window.location.href = '/'}
             className="mt-6 w-full py-3 px-4 bg-primary text-primary-foreground rounded-lg font-medium"
           >

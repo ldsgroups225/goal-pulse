@@ -1,3 +1,5 @@
+// src/app/api/predictions/[id]/route.ts
+
 import type { NextRequest } from 'next/server'
 import { getMatchPredictionById } from '@/lib/api/prediction-api'
 import { NextResponse } from 'next/server'
@@ -16,7 +18,7 @@ export async function GET(
   try {
     const id = Number.parseInt(params.id, 10)
 
-    if (isNaN(id)) {
+    if (Number.isNaN(id)) {
       return NextResponse.json(
         {
           success: false,
