@@ -1,7 +1,9 @@
 // src/lib/api/prediction-api.ts
 
 import type { LiveScoreResponse, Match, MatchEvent, MatchPrediction } from '@/types'
+import type { TeamSeasonStats } from '@/types/fixture-info'
 import { cache } from 'react'
+import { fetchFixtureInfo } from './fixture-info-service'
 import { enhanceWithTemporalAnalysis } from './prediction-temporal-api'
 
 export type { MatchPrediction }
@@ -44,9 +46,9 @@ function calculateXG(event: MatchEvent, isHomeTeam: boolean): number {
   const distance = isHomeTeam
     ? Math.sqrt((100 - x) ** 2 + (30 - y) ** 2)
     : Math.sqrt(x ** 2 + (30 - y) ** 2)
-
   if (distance === 0)
     return 1
+
   const centralityFactor = Math.exp(-1.22 * Math.abs(y - 30) / 30)
   return Math.min(1, (90.75 / distance ** 2) * centralityFactor)
 }
@@ -66,11 +68,10 @@ function calculateTotalXG(events: MatchEvent[], teamId: string, localteamId: str
  */
 function computePoissonProbabilities(lambda: number, max_k: number = 10): number[] {
   const probabilities = [Math.exp(-lambda)]
-  let current = probabilities[0]
   for (let k = 1; k <= max_k; k++) {
-    current *= lambda / k
-    probabilities.push(current)
+    probabilities.push(probabilities[k - 1] * lambda / k)
   }
+
   return probabilities
 }
 
@@ -80,35 +81,94 @@ function computePoissonProbabilities(lambda: number, max_k: number = 10): number
 function computeOverProb(currentTotal: number, totalLambda: number, threshold: number): number {
   if (currentTotal >= threshold)
     return 1
+
   const kMax = Math.floor(threshold - currentTotal - 1)
   if (kMax < 0)
     return 1
-
   let prob = 0
   let p = Math.exp(-totalLambda)
-  prob += p
-  for (let k = 1; k <= kMax; k++) {
-    p *= totalLambda / k
+
+  for (let k = 0; k <= kMax; k++) {
     prob += p
+    p *= totalLambda / (k + 1)
   }
+
   return 1 - prob
+}
+
+/**
+ * Gets the historical scoring rate for a specific time window
+ * This is exported for use in prediction-temporal-api.ts
+ */
+export function getHistoricalScoringRate(
+  teamStats: TeamSeasonStats | undefined,
+  windowStart: number,
+  windowEnd: number,
+): number {
+  if (!teamStats || !teamStats.seasonStats?.scoringMinutes?.length) {
+    return 0
+  }
+
+  let targetBucket: string
+  if (windowStart <= 15 && windowEnd <= 15) {
+    targetBucket = '0-15'
+  }
+  else if (windowStart >= 35 && windowEnd <= 45) {
+    targetBucket = '30-45'
+  }
+  else if (windowStart >= 45 && windowEnd <= 60) {
+    targetBucket = '45-60'
+  }
+  else if (windowStart >= 75) {
+    targetBucket = '75-90'
+  }
+  else if (windowStart >= 60) {
+    targetBucket = '60-75'
+  }
+  else if (windowStart >= 30) {
+    targetBucket = '30-45'
+  }
+  else if (windowStart >= 15) {
+    targetBucket = '15-30'
+  }
+  else {
+    targetBucket = '0-15'
+  }
+
+  // Find the scoring minute and period with the target bucket
+  const scoringMinute = teamStats.seasonStats.scoringMinutes[0]
+  const period = scoringMinute?.period?.find(p => p.minute === targetBucket)
+
+  // Convert goals scored in this period to a rate (goals per match)
+  if (period) {
+    const count = Number.parseInt(period.count, 10) || 0
+    return count / (teamStats.nbMatches || 1)
+  }
+
+  return 0
 }
 
 /**
  * Analyzes match data to provide predictions
  */
-/**
- * Analyzes match data to provide predictions
- */
-function analyzeMatch(match: Match): MatchPrediction | null {
+async function analyzeMatch(match: Match): Promise<MatchPrediction | null> {
   try {
-    if (!match || !match.stats || !match.scores || !match.time || !match.league?.data
-      || !match.localTeam?.data || !match.visitorTeam?.data || !match.events?.data) {
-      console.warn(`Skipping match ${match?.id} due to missing data`)
+    // Extract all events
+    const events = match.events?.data || []
+    if (!events || events.length === 0) {
+      console.warn(`No events found for match ${match.id}`)
       return null
     }
 
-    const statsData = match.stats.data || []
+    // Fetch fixture info for additional data
+    const fixtureInfo = await fetchFixtureInfo(match.id)
+
+    // Extract team stats and probabilities if available
+    const localTeamSeasonStats = fixtureInfo?.localTeamSeasonStats
+    const visitorTeamSeasonStats = fixtureInfo?.visitorTeamSeasonStats
+    const probability = fixtureInfo?.probability
+
+    const statsData = match.stats.data
     const homeTeamStats = statsData.find(stats => stats.teamId === match.localteamId)
     const awayTeamStats = statsData.find(stats => stats.teamId === match.visitorteamId)
 
@@ -119,21 +179,27 @@ function analyzeMatch(match: Match): MatchPrediction | null {
     const currentHomeGoals = match.scores.localTeamScore || 0
     const currentAwayGoals = match.scores.visitorTeamScore || 0
     const matchMinute = match.time.minute || 0
-    const remainingTime = 90 - matchMinute
+    const remainingTime = Math.max(0, 90 - matchMinute)
 
     // Basic stats
     const homePossession = homeTeamStats?.possessiontime || 50
-    const awayPossession = awayTeamStats?.possessiontime || 50
+    const awayPossession = 100 - homePossession
     const homeShotsTotal = homeTeamStats?.shots?.total || 0
     const awayShotsTotal = awayTeamStats?.shots?.total || 0
     const homeShotsOnTarget = homeTeamStats?.shots?.ongoal || 0
     const awayShotsOnTarget = awayTeamStats?.shots?.ongoal || 0
-    const homeShotsOffTarget = homeTeamStats?.shots?.offgoal || 0
-    const awayShotsOffTarget = awayTeamStats?.shots?.offgoal || 0
+    const homeShotsOffTarget = homeShotsTotal - homeShotsOnTarget
+    const awayShotsOffTarget = awayShotsTotal - awayShotsOnTarget
     const homeAttacks = homeTeamStats?.attacks?.attacks || 0
     const awayAttacks = awayTeamStats?.attacks?.attacks || 0
     const homeDangerousAttacks = homeTeamStats?.attacks?.dangerous_attacks || 0
     const awayDangerousAttacks = awayTeamStats?.attacks?.dangerous_attacks || 0
+    const homeYellowCards = homeTeamStats?.yellowcards || 0
+    const awayYellowCards = awayTeamStats?.yellowcards || 0
+    const homeRedCards = homeTeamStats?.redcards || 0
+    const awayRedCards = awayTeamStats?.redcards || 0
+    const homeCorners = homeTeamStats?.corners || 0
+    const awayCorners = awayTeamStats?.corners || 0
 
     // Declare variables at function scope
     let homeWinProb: number
@@ -143,9 +209,17 @@ function analyzeMatch(match: Match): MatchPrediction | null {
     let lambdaAway = 0
 
     if (matchMinute === 0) {
-      homeWinProb = 0.33
-      drawProb = 0.33
-      awayWinProb = 0.33
+      // Use pre-match probabilities from the fixture info if available
+      if (probability) {
+        homeWinProb = probability.home || 0.33
+        drawProb = probability.draw || 0.33
+        awayWinProb = probability.away || 0.33
+      }
+      else {
+        homeWinProb = 0.33
+        drawProb = 0.33
+        awayWinProb = 0.33
+      }
     }
     else if (remainingTime <= 0) {
       if (currentHomeGoals > currentAwayGoals) {
@@ -165,38 +239,85 @@ function analyzeMatch(match: Match): MatchPrediction | null {
       }
     }
     else {
+      // Calculate xG from live events
       const homeXGSoFar = calculateTotalXG(match.events.data, localteamIdStr, localteamIdStr)
       const awayXGSoFar = calculateTotalXG(match.events.data, visitorteamIdStr, localteamIdStr)
-      const homeXGRate = matchMinute > 0 ? homeXGSoFar / matchMinute : 0
-      const awayXGRate = matchMinute > 0 ? awayXGSoFar / matchMinute : 0
-      lambdaHome = homeXGRate * remainingTime
-      lambdaAway = awayXGRate * remainingTime
 
-      const homeProbabilities = computePoissonProbabilities(lambdaHome)
-      const awayProbabilities = computePoissonProbabilities(lambdaAway)
+      // Get historical goal rates for the remaining time
+      const homeHistoricalRate = localTeamSeasonStats ? localTeamSeasonStats.avgTotalGoals * (remainingTime / 90) : 0
+      const awayHistoricalRate = visitorTeamSeasonStats ? visitorTeamSeasonStats.avgTotalGoals * (remainingTime / 90) : 0
 
-      let pHomeWin = 0
-      let pDraw = 0
-      let pAwayWin = 0
-      const maxK = 10
+      // Calculate expected remaining goals using a weighted combination of live data and historical data
+      // We weight live data more heavily as the match progresses
+      const liveDataWeight = Math.min(0.8, matchMinute / 60) // Caps at 80% weight for live data
+      const historicalWeight = 1 - liveDataWeight
 
-      for (let h = 0; h <= maxK; h++) {
-        for (let a = 0; a <= maxK; a++) {
-          const prob = homeProbabilities[h] * awayProbabilities[a]
-          const homeTotal = currentHomeGoals + h
-          const awayTotal = currentAwayGoals + a
-          if (homeTotal > awayTotal)
-            pHomeWin += prob
-          else if (homeTotal === awayTotal)
-            pDraw += prob
-          else pAwayWin += prob
-        }
+      // Calculate expected goals for the remainder of the match
+      const homeShotRatio = homeShotsTotal > 0
+        ? homeShotsTotal / (homeShotsTotal + awayShotsTotal)
+        : 0.5
+
+      // Dynamic lambda calculation for remaining time
+      const homeLambdaLive = (homeXGSoFar / Math.max(1, matchMinute)) * remainingTime
+        * (1 + 0.2 * (homeShotRatio - 0.5) + 0.2 * (homePossession / 100 - 0.5))
+
+      const awayLambdaLive = (awayXGSoFar / Math.max(1, matchMinute)) * remainingTime
+        * (1 + 0.2 * ((1 - homeShotRatio) - 0.5) + 0.2 * ((100 - homePossession) / 100 - 0.5))
+
+      // Combine live and historical data
+      lambdaHome = (liveDataWeight * homeLambdaLive) + (historicalWeight * homeHistoricalRate)
+      lambdaAway = (liveDataWeight * awayLambdaLive) + (historicalWeight * awayHistoricalRate)
+
+      // Apply team-specific modifiers based on historical concession rates
+      if (localTeamSeasonStats && visitorTeamSeasonStats) {
+        // Home team scores more when away team concedes more than average
+        const awayDefenseFactor = visitorTeamSeasonStats.avgTotalAwayConcededGoals
+          / Math.max(0.5, visitorTeamSeasonStats.avgTotalConcededGoals)
+
+        // Away team scores more when home team concedes more than average
+        const homeDefenseFactor = localTeamSeasonStats.avgTotalHomeConcededGoals
+          / Math.max(0.5, localTeamSeasonStats.avgTotalConcededGoals)
+
+        lambdaHome *= Math.min(1.5, awayDefenseFactor)
+        lambdaAway *= Math.min(1.5, homeDefenseFactor)
       }
 
-      const totalProb = pHomeWin + pDraw + pAwayWin
-      homeWinProb = totalProb > 0 ? pHomeWin / totalProb : 0.33
-      drawProb = totalProb > 0 ? pDraw / totalProb : 0.33
-      awayWinProb = totalProb > 0 ? pAwayWin / totalProb : 0.33
+      // Calculate probabilities using Poisson distribution
+      // Max goals to consider
+      const maxGoals = 5
+
+      // Generate distributions
+      const homeProbs = computePoissonProbabilities(lambdaHome, maxGoals)
+      const awayProbs = computePoissonProbabilities(lambdaAway, maxGoals)
+
+      // Calculate match outcome probabilities
+      homeWinProb = 0
+      drawProb = 0
+      awayWinProb = 0
+
+      for (let i = 0; i <= maxGoals; i++) {
+        for (let j = 0; j <= maxGoals; j++) {
+          const prob = homeProbs[i] * awayProbs[j]
+
+          if (currentHomeGoals + i > currentAwayGoals + j) {
+            homeWinProb += prob
+          }
+          else if (currentHomeGoals + i < currentAwayGoals + j) {
+            awayWinProb += prob
+          }
+          else {
+            drawProb += prob
+          }
+        }
+      }
+    }
+
+    // Normalize probabilities to ensure they sum to 1
+    const totalProb = homeWinProb + drawProb + awayWinProb
+    if (totalProb > 0) {
+      homeWinProb /= totalProb
+      drawProb /= totalProb
+      awayWinProb /= totalProb
     }
 
     // Goal market predictions
@@ -252,6 +373,26 @@ function analyzeMatch(match: Match): MatchPrediction | null {
     if (reasons.length === 0)
       reasons.push('Based on balanced match statistics')
 
+    // Include historical insights if available
+    const h2hTrends: string[] = []
+    if (fixtureInfo?.head2head_detail_list && fixtureInfo.head2head_detail_list.length > 0) {
+      const h2hMatches = fixtureInfo.head2head_detail_list
+      const totalGoals = h2hMatches.reduce((sum, match) => {
+        return sum + match.scores.localTeamScoreFT + match.scores.visitorTeamScoreFT
+      }, 0)
+
+      const avgGoals = totalGoals / h2hMatches.length
+      h2hTrends.push(`Avg ${avgGoals.toFixed(1)} goals per H2H match`)
+
+      const bttsCount = h2hMatches.filter(m =>
+        m.scores.localTeamScoreFT > 0 && m.scores.visitorTeamScoreFT > 0).length
+      const bttsPercentage = (bttsCount / h2hMatches.length) * 100
+
+      if (bttsPercentage > 50) {
+        h2hTrends.push(`BTTS in ${bttsPercentage.toFixed(0)}% of H2H matches`)
+      }
+    }
+
     const prediction: MatchPrediction = {
       fixtureId: match.id,
       league: {
@@ -281,31 +422,75 @@ function analyzeMatch(match: Match): MatchPrediction | null {
         recommendedBet,
         confidence,
         reasons,
-        goals: { over15: over15Prob, over25: over25Prob, over35: over35Prob, btts: bttsProb },
+        goals: {
+          over15: over15Prob,
+          over25: over25Prob,
+          over35: over35Prob,
+          btts: bttsProb,
+        },
       },
       stats: {
-        possession: { home: homePossession, away: awayPossession },
+        possession: {
+          home: homePossession,
+          away: awayPossession,
+        },
         shots: {
-          home: { total: homeShotsTotal, onTarget: homeShotsOnTarget, offTarget: homeShotsOffTarget },
-          away: { total: awayShotsTotal, onTarget: awayShotsOnTarget, offTarget: awayShotsOffTarget },
+          home: {
+            total: homeShotsTotal,
+            onTarget: homeShotsOnTarget,
+            offTarget: homeShotsOffTarget,
+          },
+          away: {
+            total: awayShotsTotal,
+            onTarget: awayShotsOnTarget,
+            offTarget: awayShotsOffTarget,
+          },
         },
         attacks: {
-          home: { total: homeAttacks, dangerous: homeDangerousAttacks },
-          away: { total: awayAttacks, dangerous: awayDangerousAttacks },
+          home: {
+            total: homeAttacks,
+            dangerous: homeDangerousAttacks,
+          },
+          away: {
+            total: awayAttacks,
+            dangerous: awayDangerousAttacks,
+          },
         },
-        corners: { home: homeTeamStats?.corners || 0, away: awayTeamStats?.corners || 0 },
         cards: {
-          home: { yellow: homeTeamStats?.yellowcards || 0, red: homeTeamStats?.redcards || 0 },
-          away: { yellow: awayTeamStats?.yellowcards || 0, red: awayTeamStats?.redcards || 0 },
+          home: {
+            yellow: homeYellowCards,
+            red: homeRedCards,
+          },
+          away: {
+            yellow: awayYellowCards,
+            red: awayRedCards,
+          },
+        },
+        corners: {
+          home: homeCorners,
+          away: awayCorners,
         },
       },
       lastUpdated: new Date().toISOString(),
+      historicalInsights: {
+        scoringRates: {
+          home: {
+            total: localTeamSeasonStats?.avgTotalGoals || 0,
+            byWindow: {},
+          },
+          away: {
+            total: visitorTeamSeasonStats?.avgTotalGoals || 0,
+            byWindow: {},
+          },
+        },
+        h2hTrends,
+      },
     }
 
-    return enhanceWithTemporalAnalysis(prediction, match)
+    return prediction
   }
   catch (error) {
-    console.error(`Error analyzing match ${match?.id}:`, error)
+    console.error(`Error analyzing match ${match.id}:`, error)
     return null
   }
 }
@@ -315,10 +500,28 @@ function analyzeMatch(match: Match): MatchPrediction | null {
  */
 export const getLivePredictions = cache(async (): Promise<MatchPrediction[]> => {
   try {
-    const liveScoreData = await fetchLiveScores()
-    return Object.values(liveScoreData)
-      .map(match => analyzeMatch(match))
-      .filter((prediction): prediction is MatchPrediction => prediction !== null)
+    const liveScores = await fetchLiveScores()
+    if (!liveScores?.data) {
+      console.warn('No live scores data available')
+      return []
+    }
+
+    const predictions: MatchPrediction[] = []
+    const matchesArray = Array.isArray(liveScores.data) ? liveScores.data : []
+
+    for (const match of matchesArray) {
+      const prediction = await analyzeMatch(match)
+      if (prediction) {
+        // Fetch fixture info for temporal analysis
+        const fixtureInfo = await fetchFixtureInfo(match.id)
+
+        // Enhance prediction with temporal analysis
+        const enhancedPrediction = await enhanceWithTemporalAnalysis(prediction, match, fixtureInfo)
+        predictions.push(enhancedPrediction)
+      }
+    }
+
+    return predictions
   }
   catch (error) {
     console.error('Error getting live predictions:', error)
@@ -329,13 +532,38 @@ export const getLivePredictions = cache(async (): Promise<MatchPrediction[]> => 
 /**
  * Gets a specific match prediction by ID
  */
-export async function getMatchPredictionById(matchId: number): Promise<MatchPrediction | null> {
+export const getMatchPredictionById = cache(async (matchId: number): Promise<MatchPrediction | null> => {
   try {
-    const predictions = await getLivePredictions()
-    return predictions.find(p => p.fixtureId === matchId) || null
+    // Fetch all live scores first
+    const liveScores = await fetchLiveScores()
+    if (!liveScores?.data) {
+      console.warn('No live scores data available')
+      return null
+    }
+
+    // Find the specific match
+    const matchesArray = Array.isArray(liveScores.data) ? liveScores.data : []
+    const match = matchesArray.find((m: Match) => m.id === matchId)
+
+    if (!match) {
+      console.warn(`Match with ID ${matchId} not found in live scores`)
+      return null
+    }
+
+    // Analyze the match
+    const prediction = await analyzeMatch(match)
+    if (!prediction) {
+      return null
+    }
+
+    // Fetch fixture info for this match
+    const fixtureInfo = await fetchFixtureInfo(matchId)
+
+    // Enhance with temporal analysis
+    return await enhanceWithTemporalAnalysis(prediction, match, fixtureInfo)
   }
   catch (error) {
     console.error(`Error getting prediction for match ${matchId}:`, error)
     return null
   }
-}
+})

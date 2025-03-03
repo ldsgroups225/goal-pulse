@@ -1,4 +1,4 @@
-import type { Match, MatchEvent, TemporalWindow } from '@/types'
+import type { Match, MatchEvent, TemporalWindow, WindowAnalysis } from '@/types'
 import { describe, expect, it } from 'vitest'
 import {
   analyzeTemporal,
@@ -31,8 +31,8 @@ describe('temporal Prediction API', () => {
       expect(filtered[1].minute).toBe(12)
     })
 
-    it('should include buildup events before window if specified', () => {
-      // Mock events with buffer
+    it('should handle events within the exact window bounds', () => {
+      // Mock events
       const events: MatchEvent[] = [
         { id: 1, fixtureId: 1, minute: 5, teamId: '1', type: 'goal' },
         { id: 2, fixtureId: 1, minute: 30, teamId: '2', type: 'yellowcard' },
@@ -43,14 +43,13 @@ describe('temporal Prediction API', () => {
       // Test window
       const window: TemporalWindow = { start: 35, end: 45, label: 'First Half End' }
 
-      // Filter with buildup
-      const filtered = filterEventsByWindow(events, window, true)
+      // Filter events within window bounds
+      const filtered = filterEventsByWindow(events, window)
 
-      // Expect 3 events (including one from buildup time)
-      expect(filtered).toHaveLength(3)
-      expect(filtered[0].minute).toBe(30) // 5 minutes before window starts
-      expect(filtered[1].minute).toBe(35)
-      expect(filtered[2].minute).toBe(40)
+      // Expect 2 events within window bounds
+      expect(filtered).toHaveLength(2)
+      expect(filtered[0].minute).toBe(35)
+      expect(filtered[1].minute).toBe(40)
     })
   })
 
@@ -92,7 +91,7 @@ describe('temporal Prediction API', () => {
       expect(result).toHaveLength(PREDICTION_WINDOWS.length)
 
       // Check each window has required properties
-      result.forEach((windowAnalysis) => {
+      result.forEach((windowAnalysis: WindowAnalysis) => {
         expect(windowAnalysis).toHaveProperty('window')
         expect(windowAnalysis).toHaveProperty('probability')
         expect(windowAnalysis).toHaveProperty('keyFactors')
@@ -107,8 +106,8 @@ describe('temporal Prediction API', () => {
       })
 
       // Final 10 minutes window should have higher probability due to events
-      const finalWindow = result.find(w => w.window.label === 'Final 10')
-      const firstWindow = result.find(w => w.window.label === 'First 15')
+      const finalWindow = result.find((w: WindowAnalysis) => w.window.label === 'Final 10')
+      const firstWindow = result.find((w: WindowAnalysis) => w.window.label === 'First 15')
 
       if (finalWindow && firstWindow) {
         // Both windows have goals, but final window is more predictive due to pressure build-up

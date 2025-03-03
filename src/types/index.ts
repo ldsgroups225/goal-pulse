@@ -1,3 +1,8 @@
+interface ScoringRates {
+  total: number
+  byWindow: Record<string, number>
+}
+
 export interface MatchEvent {
   fixtureId: number
   id: number
@@ -267,6 +272,13 @@ export interface MatchPrediction {
     lastUpdated: string
   }
   lastUpdated: string
+  historicalInsights: {
+    scoringRates: {
+      home: ScoringRates
+      away: ScoringRates
+    }
+    h2hTrends: string[]
+  }
 }
 
 export interface TemporalWindow {
