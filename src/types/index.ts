@@ -305,3 +305,61 @@ export interface TeamWindowStats {
   transitionSpeed: number
   setPieceEfficiency: number
 }
+
+export interface FixtureInfoResponse {
+  id: number
+  localteamId: number
+  visitorteamId: number
+  localTeam: TeamInfo
+  visitorTeam: TeamInfo
+  probability: {
+    home: number
+    draw: number
+    away: number
+    over_1_5: number
+    over_2_5: number
+    over_3_5: number
+    btts: number
+    [key: string]: number
+  }
+  head2head_detail_list: HeadToHeadMatch[]
+  localTeamSeasonStats: TeamSeasonStats
+  visitorTeamSeasonStats: TeamSeasonStats
+  additionalData: {
+    weatherType?: string
+    temperatureCelcius?: number
+  }
+}
+
+export interface TeamInfo {
+  id: number
+  name: string
+  logoPath?: string
+}
+
+export interface HeadToHeadMatch {
+  localteamId: number
+  visitorteamId: number
+  scores: {
+    localTeamScore: number
+    visitorTeamScore: number
+    htScore: string
+    ftScore: string
+  }
+  time: {
+    minute: number
+    startingAt: { timestamp: number }
+  }
+  stats: { data: MatchStats[] }
+}
+
+export interface TeamSeasonStats {
+  nbMatches: number
+  scoringMinutes: ScoringMinute[]
+  avgGoalsPerGameScored: { total: number, home: number, away: number }
+  avgGoalsPerGameConceded: { total: number, home: number, away: number }
+}
+
+export interface ScoringMinute {
+  period: { minute: string, count: string, percentage: string }[]
+}

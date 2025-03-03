@@ -1,12 +1,13 @@
 // src/lib/api/prediction-api.ts
 
-import type { LiveScoreResponse, Match, MatchEvent, MatchPrediction } from '@/types'
+import type { FixtureInfoResponse, LiveScoreResponse, Match, MatchEvent, MatchPrediction } from '@/types'
 import { cache } from 'react'
 import { enhanceWithTemporalAnalysis } from './prediction-temporal-api'
 
 export type { MatchPrediction }
 
 const API_ENDPOINT = 'https://api.betmines.com/betmines/v1/fixtures/livescores'
+const FIXTURE_INFO_ENDPOINT = 'https://api.betmines.com/betmines/v1/fixtures/info'
 
 /**
  * Fetches live score data from the API
@@ -29,6 +30,31 @@ export const fetchLiveScores = cache(async (): Promise<LiveScoreResponse> => {
   }
   catch (error) {
     console.error('Error fetching live scores:', error)
+    throw error
+  }
+})
+
+/**
+ * Fetches detailed fixture info for a given match ID
+ */
+export const fetchFixtureInfo = cache(async (fixtureId: number): Promise<FixtureInfoResponse> => {
+  try {
+    const response = await fetch(`${FIXTURE_INFO_ENDPOINT}/${fixtureId}?includeSeasonStats=true`, {
+      next: { revalidate: 300 }, // Cache for 5 minutes
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch fixture info: ${response.status}`)
+    }
+
+    return await response.json()
+  }
+  catch (error) {
+    console.error(`Error fetching fixture info for fixture ${fixtureId}:`, error)
     throw error
   }
 })
@@ -97,10 +123,7 @@ function computeOverProb(currentTotal: number, totalLambda: number, threshold: n
 /**
  * Analyzes match data to provide predictions
  */
-/**
- * Analyzes match data to provide predictions
- */
-function analyzeMatch(match: Match): MatchPrediction | null {
+function analyzeMatch(match: Match, fixtureInfo: FixtureInfoResponse | null): MatchPrediction | null {
   try {
     if (!match || !match.stats || !match.scores || !match.time || !match.league?.data
       || !match.localTeam?.data || !match.visitorTeam?.data || !match.events?.data) {
@@ -135,17 +158,21 @@ function analyzeMatch(match: Match): MatchPrediction | null {
     const homeDangerousAttacks = homeTeamStats?.attacks?.dangerous_attacks || 0
     const awayDangerousAttacks = awayTeamStats?.attacks?.dangerous_attacks || 0
 
-    // Declare variables at function scope
     let homeWinProb: number
     let drawProb: number
     let awayWinProb: number
     let lambdaHome = 0
     let lambdaAway = 0
 
+    // Incorporate pre-match probabilities from fixtureInfo if available
+    const preMatchHomeProb = fixtureInfo?.probability?.home || 0.33
+    const preMatchDrawProb = fixtureInfo?.probability?.draw || 0.33
+    const preMatchAwayProb = fixtureInfo?.probability?.away || 0.33
+
     if (matchMinute === 0) {
-      homeWinProb = 0.33
-      drawProb = 0.33
-      awayWinProb = 0.33
+      homeWinProb = preMatchHomeProb
+      drawProb = preMatchDrawProb
+      awayWinProb = preMatchAwayProb
     }
     else if (remainingTime <= 0) {
       if (currentHomeGoals > currentAwayGoals) {
@@ -194,20 +221,35 @@ function analyzeMatch(match: Match): MatchPrediction | null {
       }
 
       const totalProb = pHomeWin + pDraw + pAwayWin
-      homeWinProb = totalProb > 0 ? pHomeWin / totalProb : 0.33
-      drawProb = totalProb > 0 ? pDraw / totalProb : 0.33
-      awayWinProb = totalProb > 0 ? pAwayWin / totalProb : 0.33
+      const liveHomeProb = totalProb > 0 ? pHomeWin / totalProb : 0.33
+      const liveDrawProb = totalProb > 0 ? pDraw / totalProb : 0.33
+      const liveAwayProb = totalProb > 0 ? pAwayWin / totalProb : 0.33
+
+      // Weighted average with pre-match probabilities (50% live, 50% pre-match)
+      homeWinProb = (liveHomeProb + preMatchHomeProb) / 2
+      drawProb = (liveDrawProb + preMatchDrawProb) / 2
+      awayWinProb = (liveAwayProb + preMatchAwayProb) / 2
     }
 
-    // Goal market predictions
+    // Goal market predictions with pre-match adjustment
     const currentTotal = currentHomeGoals + currentAwayGoals
     const totalLambda = lambdaHome + lambdaAway
-    const over15Prob = computeOverProb(currentTotal, totalLambda, 2)
-    const over25Prob = computeOverProb(currentTotal, totalLambda, 3)
-    const over35Prob = computeOverProb(currentTotal, totalLambda, 4)
+    const preMatchOver15 = fixtureInfo?.probability?.over_1_5 || 0.5
+    const preMatchOver25 = fixtureInfo?.probability?.over_2_5 || 0.5
+    const preMatchOver35 = fixtureInfo?.probability?.over_3_5 || 0.5
+    const preMatchBTTS = fixtureInfo?.probability?.btts || 0.5
+
+    const liveOver15 = computeOverProb(currentTotal, totalLambda, 2)
+    const liveOver25 = computeOverProb(currentTotal, totalLambda, 3)
+    const liveOver35 = computeOverProb(currentTotal, totalLambda, 4)
     const pHomeScores = currentHomeGoals >= 1 ? 1 : 1 - Math.exp(-lambdaHome)
     const pAwayScores = currentAwayGoals >= 1 ? 1 : 1 - Math.exp(-lambdaAway)
-    const bttsProb = pHomeScores * pAwayScores
+    const liveBTTS = pHomeScores * pAwayScores
+
+    const over15Prob = (liveOver15 + preMatchOver15) / 2
+    const over25Prob = (liveOver25 + preMatchOver25) / 2
+    const over35Prob = (liveOver35 + preMatchOver35) / 2
+    const bttsProb = (liveBTTS + preMatchBTTS) / 2
 
     // Recommended bet and confidence
     let recommendedBet = ''
@@ -233,7 +275,7 @@ function analyzeMatch(match: Match): MatchPrediction | null {
       confidence = 0.5
     }
 
-    // Prediction reasons
+    // Prediction reasons (unchanged)
     const reasons: string[] = []
     if (homePossession > 60)
       reasons.push(`Home team controlling possession (${homePossession}%)`)
@@ -302,7 +344,7 @@ function analyzeMatch(match: Match): MatchPrediction | null {
       lastUpdated: new Date().toISOString(),
     }
 
-    return enhanceWithTemporalAnalysis(prediction, match)
+    return enhanceWithTemporalAnalysis(prediction, match, fixtureInfo)
   }
   catch (error) {
     console.error(`Error analyzing match ${match?.id}:`, error)
@@ -311,13 +353,21 @@ function analyzeMatch(match: Match): MatchPrediction | null {
 }
 
 /**
- * Gets live match predictions
+ * Gets live match predictions with fixture info
  */
 export const getLivePredictions = cache(async (): Promise<MatchPrediction[]> => {
   try {
     const liveScoreData = await fetchLiveScores()
+    const fixtureIds = Object.values(liveScoreData).map(match => match.id)
+
+    // Fetch fixture info for all matches in parallel
+    const fixtureInfoPromises = fixtureIds.map(id => fetchFixtureInfo(id).catch(() => null))
+    const fixtureInfos = await Promise.all(fixtureInfoPromises)
+    const fixtureInfoMap = new Map<number, FixtureInfoResponse | null>()
+    fixtureIds.forEach((id, index) => fixtureInfoMap.set(id, fixtureInfos[index]))
+
     return Object.values(liveScoreData)
-      .map(match => analyzeMatch(match))
+      .map(match => analyzeMatch(match, fixtureInfoMap.get(match.id) || null))
       .filter((prediction): prediction is MatchPrediction => prediction !== null)
   }
   catch (error) {
@@ -327,12 +377,17 @@ export const getLivePredictions = cache(async (): Promise<MatchPrediction[]> => 
 })
 
 /**
- * Gets a specific match prediction by ID
+ * Gets a specific match prediction by ID with fixture info
  */
 export async function getMatchPredictionById(matchId: number): Promise<MatchPrediction | null> {
   try {
-    const predictions = await getLivePredictions()
-    return predictions.find(p => p.fixtureId === matchId) || null
+    const liveScoreData = await fetchLiveScores()
+    const match = Object.values(liveScoreData).find(m => m.id === matchId)
+    if (!match)
+      return null
+
+    const fixtureInfo = await fetchFixtureInfo(matchId).catch(() => null)
+    return analyzeMatch(match, fixtureInfo)
   }
   catch (error) {
     console.error(`Error getting prediction for match ${matchId}:`, error)

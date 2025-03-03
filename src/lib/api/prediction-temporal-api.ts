@@ -1,4 +1,6 @@
-import type { Match, MatchEvent, MatchPrediction, TeamWindowStats, TemporalWindow, WindowAnalysis } from '@/types'
+// src/lib/api/prediction-temporal-api.ts
+
+import type { FixtureInfoResponse, Match, MatchEvent, MatchPrediction, TeamSeasonStats, TeamWindowStats, TemporalWindow, WindowAnalysis } from '@/types'
 
 // Define the key temporal windows for analysis
 export const PREDICTION_WINDOWS: TemporalWindow[] = [
@@ -236,49 +238,48 @@ function calculateTeamWindowStats(
 function calculateGoalProbability(
   events: MatchEvent[],
   window: TemporalWindow,
-  _match: Match,
+  match: Match,
+  fixtureInfo: FixtureInfoResponse | null,
 ): number {
-  const _windowEvents = filterEventsByWindow(events, window)
   const buildupEvents = filterEventsByWindow(events, window, true)
 
-  // Base probability factors
-  const baseProbability = 0.15 // Starting point
-
-  // Calculate factors
+  const baseProbability = 0.15
   const pressure = calculatePressureIndex(buildupEvents, null, window.end - window.start)
   const momentum = calculateAttackMomentum(events, window)
-
-  // Set piece influence
   const setPieces = buildupEvents.filter(e => e.type === 'freekick').length
   const setPieceFactor = Math.min(0.2, setPieces * 0.05)
-
-  // Card factor (more cards = higher chance of defensive mistakes)
   const cards = buildupEvents.filter(e => e.type === 'yellowcard' || e.type === 'redcard').length
   const cardFactor = Math.min(0.15, cards * 0.05)
 
-  // Window specific weights
   const windowConfig = WINDOW_FACTORS[window.label as keyof typeof WINDOW_FACTORS]
   const windowWeight = windowConfig?.weight || 0.3
 
-  // Calculate total probability
-  let probability = baseProbability
+  let liveProbability = baseProbability
     + (pressure * 0.25)
     + (momentum * 0.2)
     + setPieceFactor
     + cardFactor
+  liveProbability *= windowWeight
+  liveProbability = Math.min(0.95, Math.max(0.01, liveProbability))
 
-  // Apply window weight
-  probability = probability * windowWeight
+  // Historical adjustment
+  if (!fixtureInfo)
+    return liveProbability
 
-  // Cap between 1% and 95%
-  return Math.min(0.95, Math.max(0.01, probability))
+  const homeXG = calculateHistoricalXG(fixtureInfo.localTeamSeasonStats, window)
+  const awayXG = calculateHistoricalXG(fixtureInfo.visitorTeamSeasonStats, window)
+
+  const lambdaHistorical = homeXG + awayXG
+  const historicalProbability = 1 - Math.exp(-lambdaHistorical)
+
+  // Weighted average (50% live, 50% historical)
+  return (liveProbability + historicalProbability) / 2
 }
 
 /**
  * Analyze a single match for temporal goal predictions
  */
-export function analyzeTemporal(match: Match): WindowAnalysis[] {
-  // Validate match data
+export function analyzeTemporal(match: Match, fixtureInfo: FixtureInfoResponse | null): WindowAnalysis[] {
   if (!match || !match.events?.data || !match.stats?.data) {
     return []
   }
@@ -286,32 +287,23 @@ export function analyzeTemporal(match: Match): WindowAnalysis[] {
   const events = match.events.data
   const windows: WindowAnalysis[] = []
 
-  // Analyze each predefined window
   PREDICTION_WINDOWS.forEach((window) => {
     const windowEvents = filterEventsByWindow(events, window)
     const buildupEvents = filterEventsByWindow(events, window, true)
 
-    // Skip if match hasn't reached this time window yet
     const currentMinute = match.time?.minute || 0
-    if (currentMinute < window.start) {
+    if (currentMinute < window.start)
       return
-    }
 
-    // Calculate probability
-    const probability = calculateGoalProbability(events, window, match)
-
-    // Calculate supporting metrics
+    const probability = calculateGoalProbability(events, window, match, fixtureInfo)
     const pressureIndex = calculatePressureIndex(buildupEvents, null, window.end - window.start)
     const shots = windowEvents.filter(e => e.isDangerous).length
     const totalEvents = windowEvents.length || 1
     const dangerRatio = shots / totalEvents
     const shotFrequency = shots / (window.end - window.start)
     const setPieceCount = windowEvents.filter(e => e.type === 'freekick').length
-
-    // Identify key factors
     const keyFactors = identifyKeyFactors(buildupEvents, window, null)
 
-    // Create window analysis
     windows.push({
       window,
       probability,
@@ -320,12 +312,38 @@ export function analyzeTemporal(match: Match): WindowAnalysis[] {
       dangerRatio,
       shotFrequency,
       setPieceCount,
-      goalIntensity: pressureIndex * 0.8, // Default calculation based on pressure index
-      patternStrength: Math.min(setPieceCount * 0.5 + shotFrequency * 0.5, 10), // Default calculation based on existing metrics
+      goalIntensity: pressureIndex * 0.8,
+      patternStrength: Math.min(setPieceCount * 0.5 + shotFrequency * 0.5, 10),
     })
   })
 
   return windows
+}
+
+/**
+ * Calculate historical expected goals for a time window based on season stats
+ */
+function calculateHistoricalXG(seasonStats: TeamSeasonStats, window: TemporalWindow): number {
+  // Check if seasonStats or scoringMinutes is undefined or empty
+  if (!seasonStats || !seasonStats.scoringMinutes || seasonStats.scoringMinutes.length === 0) {
+    return 0 // Default to 0 if no scoring data is available
+  }
+
+  const scoringPeriods = seasonStats.scoringMinutes[0]?.period || []
+  const nbMatches = seasonStats.nbMatches || 1
+
+  let matchingPeriod: { minute: string, count: string } | undefined
+  if (window.label === 'First 15')
+    matchingPeriod = scoringPeriods.find(p => p.minute === '0-15')
+  else if (window.label === 'First Half End')
+    matchingPeriod = scoringPeriods.find(p => p.minute === '30-45')
+  else if (window.label === 'Second Half Start')
+    matchingPeriod = scoringPeriods.find(p => p.minute === '45-60')
+  else if (window.label === 'Final 10')
+    matchingPeriod = scoringPeriods.find(p => p.minute === '75-90')
+
+  const count = matchingPeriod ? Number.parseInt(matchingPeriod.count, 10) : 0
+  return count / nbMatches
 }
 
 /**
@@ -334,20 +352,18 @@ export function analyzeTemporal(match: Match): WindowAnalysis[] {
 export function enhanceWithTemporalAnalysis(
   matchPrediction: MatchPrediction,
   match: Match,
+  fixtureInfo: FixtureInfoResponse | null,
 ): MatchPrediction {
-  // Skip if missing required data
   if (!match || !match.events?.data) {
     return matchPrediction
   }
 
   const events = match.events.data
-  const windows = analyzeTemporal(match)
+  const windows = analyzeTemporal(match, fixtureInfo)
 
-  // Get team IDs
   const homeTeamId = match.localteamId?.toString()
   const awayTeamId = match.visitorteamId?.toString()
 
-  // Enhance prediction with temporal analysis
   const enhancedPrediction: MatchPrediction = {
     ...matchPrediction,
     temporalGoalProbability: {
@@ -359,34 +375,16 @@ export function enhanceWithTemporalAnalysis(
       },
       teamComparison: {
         home: homeTeamId
-          ? calculateTeamWindowStats(
-              events,
-              PREDICTION_WINDOWS[PREDICTION_WINDOWS.length - 1],
-              homeTeamId,
-            )
-          : {
-              pressureIntensity: 0,
-              defensiveActions: 0,
-              transitionSpeed: 0,
-              setPieceEfficiency: 0,
-            },
+          ? calculateTeamWindowStats(events, PREDICTION_WINDOWS[PREDICTION_WINDOWS.length - 1], homeTeamId)
+          : { pressureIntensity: 0, defensiveActions: 0, transitionSpeed: 0, setPieceEfficiency: 0 },
         away: awayTeamId
-          ? calculateTeamWindowStats(
-              events,
-              PREDICTION_WINDOWS[PREDICTION_WINDOWS.length - 1],
-              awayTeamId,
-            )
-          : {
-              pressureIntensity: 0,
-              defensiveActions: 0,
-              transitionSpeed: 0,
-              setPieceEfficiency: 0,
-            },
+          ? calculateTeamWindowStats(events, PREDICTION_WINDOWS[PREDICTION_WINDOWS.length - 1], awayTeamId)
+          : { pressureIntensity: 0, defensiveActions: 0, transitionSpeed: 0, setPieceEfficiency: 0 },
       },
       momentumAnalysis: {
         attackMomentum: calculateAttackMomentum(events, PREDICTION_WINDOWS[PREDICTION_WINDOWS.length - 1]),
-        defenseStability: 0.5, // Would need more detailed defensive tracking
-        fatigueIndex: 0.3 * (match.time?.minute || 0) / 90, // Simple fatigue model based on match time
+        defenseStability: 0.5,
+        fatigueIndex: 0.3 * (match.time?.minute || 0) / 90,
       },
       lastUpdated: new Date().toISOString(),
     },

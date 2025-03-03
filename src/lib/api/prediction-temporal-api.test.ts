@@ -57,11 +57,11 @@ describe('temporal Prediction API', () => {
   describe('analyzeTemporal', () => {
     it('should return empty array for invalid match data', () => {
       // Test with null match
-      const result1 = analyzeTemporal(null as unknown as Match)
+      const result1 = analyzeTemporal(null as unknown as Match, null)
       expect(result1).toEqual([])
 
       // Test with match missing events
-      const result2 = analyzeTemporal({ id: 1 } as Match)
+      const result2 = analyzeTemporal({ id: 1 } as Match, null)
       expect(result2).toEqual([])
     })
 
@@ -86,7 +86,7 @@ describe('temporal Prediction API', () => {
       }
 
       // Analyze match
-      const result = analyzeTemporal(mockMatch as Match)
+      const result = analyzeTemporal(mockMatch as Match, null)
 
       // Expect analysis for each time window
       expect(result).toHaveLength(PREDICTION_WINDOWS.length)
