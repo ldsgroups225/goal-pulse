@@ -45,6 +45,13 @@
   --input: oklch(0.90 0.03 250);
   --ring: oklch(0.60 0.18 250 / 0.5);
   --radius: 0.5rem;
+
+  /* chart */
+  --chart-1: oklch(0.65 0.18 145);
+  --chart-2: oklch(0.90 0.12 145);
+  --chart-3: oklch(0.55 0.18 90);
+  --chart-4: oklch(0.55 0.18 220);
+  --chart-5: oklch(0.55 0.10 250);
   
   /* Sports-specific accent colors */
   --soccer-green: oklch(0.65 0.18 145);
@@ -78,6 +85,13 @@
   --border: oklch(0.25 0.04 240);
   --input: oklch(0.25 0.04 240);
   --ring: oklch(0.65 0.18 250 / 0.5);
+
+  /* chart colors dark */
+  --chart-1: oklch(0.50 0.15 145);
+  --chart-2: oklch(0.35 0.10 145);
+  --chart-3: oklch(0.70 0.15 90);
+  --chart-4: oklch(0.70 0.15 220);
+  --chart-5: oklch(0.70 0.08 250);
   
   /* Sports-specific accent colors - dark mode */
   --soccer-green: oklch(0.50 0.15 145);
@@ -107,6 +121,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-soccer-green: var(--soccer-green);
   --color-soccer-accent: var(--soccer-accent);
   --color-score-home: var(--score-home);

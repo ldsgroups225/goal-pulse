@@ -1,3 +1,5 @@
+// src/components/temporal-prediction.tsx
+
 import type { MatchEvent, TeamWindowStats, WindowAnalysis } from '@/types'
 import { cn } from '@/lib/utils'
 
